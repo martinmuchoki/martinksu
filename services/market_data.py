@@ -1,9 +1,10 @@
 from datetime import datetime
-from services.database import get_conn, rows_to_dicts, init_db, seed_data
+from services.database import get_conn, rows_to_dicts, init_db, seed_data, seed_price_history
 
 def ensure_market_data():
     init_db()
     seed_data()
+    seed_price_history()
 
 def get_stocks():
     ensure_market_data()
@@ -18,6 +19,18 @@ def get_stock(symbol):
     row = conn.execute("SELECT * FROM stocks WHERE symbol=?", (symbol.upper(),)).fetchone()
     conn.close()
     return dict(row) if row else None
+
+def get_price_history(symbol, limit=260):
+    ensure_market_data()
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT * FROM price_history
+        WHERE symbol=?
+        ORDER BY trade_date DESC
+        LIMIT ?
+    """, (symbol.upper(), limit)).fetchall()
+    conn.close()
+    return list(reversed(rows_to_dicts(rows)))
 
 def get_market_snapshot():
     stocks = get_stocks()

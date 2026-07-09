@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
+import random
 
 DB_PATH = Path("database/nse.db")
 
@@ -9,6 +10,9 @@ def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def rows_to_dicts(rows):
+    return [dict(r) for r in rows]
 
 def init_db():
     conn = get_conn()
@@ -23,6 +27,19 @@ def init_db():
         change_pct REAL,
         volume INTEGER,
         updated_at TEXT
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS price_history (
+        symbol TEXT,
+        trade_date TEXT,
+        open REAL,
+        high REAL,
+        low REAL,
+        close REAL,
+        volume INTEGER,
+        PRIMARY KEY(symbol, trade_date)
     )
     """)
 
@@ -58,8 +75,10 @@ def init_db():
     conn.close()
 
 def seed_data():
+    init_db()
     conn = get_conn()
     cur = conn.cursor()
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     stocks = [
         ("KCB", "KCB Group", "Banking", 44.25, 2.4, 1250000),
@@ -71,8 +90,6 @@ def seed_data():
         ("COOP", "Co-operative Bank", "Banking", 15.80, 0.9, 760000),
         ("ABSA", "Absa Bank Kenya", "Banking", 16.25, 1.5, 530000)
     ]
-
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     for row in stocks:
         cur.execute("""
@@ -88,13 +105,49 @@ def seed_data():
     ]
 
     for row in portfolio:
-        cur.execute("""
-        INSERT OR REPLACE INTO portfolio(symbol,shares,avg_price)
-        VALUES(?,?,?)
-        """, row)
+        cur.execute("INSERT OR REPLACE INTO portfolio(symbol,shares,avg_price) VALUES(?,?,?)", row)
 
     conn.commit()
     conn.close()
 
-def rows_to_dicts(rows):
-    return [dict(r) for r in rows]
+def seed_price_history(days=260):
+    seed_data()
+    conn = get_conn()
+    cur = conn.cursor()
+    stocks = cur.execute("SELECT symbol, price, volume FROM stocks").fetchall()
+
+    for stock in stocks:
+        existing = cur.execute("SELECT COUNT(*) AS c FROM price_history WHERE symbol=?", (stock["symbol"],)).fetchone()["c"]
+        if existing >= 200:
+            continue
+
+        random.seed(stock["symbol"])
+        close = float(stock["price"]) * 0.75
+        start = datetime.now().date() - timedelta(days=days * 2)
+
+        inserted = 0
+        for i in range(days * 2):
+            d = start + timedelta(days=i)
+            if d.weekday() >= 5:
+                continue
+
+            drift = random.uniform(-0.025, 0.03)
+            open_p = close * (1 + random.uniform(-0.01, 0.01))
+            close = max(1, close * (1 + drift))
+            high = max(open_p, close) * (1 + random.uniform(0.002, 0.018))
+            low = min(open_p, close) * (1 - random.uniform(0.002, 0.018))
+            volume = int(float(stock["volume"]) * random.uniform(0.4, 1.6))
+
+            cur.execute("""
+            INSERT OR REPLACE INTO price_history(symbol, trade_date, open, high, low, close, volume)
+            VALUES(?,?,?,?,?,?,?)
+            """, (stock["symbol"], d.isoformat(), round(open_p,2), round(high,2), round(low,2), round(close,2), volume))
+
+            inserted += 1
+            if inserted >= days:
+                break
+
+        cur.execute("UPDATE stocks SET price=?, updated_at=? WHERE symbol=?", (round(close,2), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), stock["symbol"]))
+
+    conn.commit()
+    conn.close()
