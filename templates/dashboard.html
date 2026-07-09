@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+    <title>NSE Signal Bot V10.3 Enterprise</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="hero">
+        <h1>NSE Signal Bot V10.3 Enterprise</h1>
+        <p>Institutional AI Trading Platform for the Nairobi Securities Exchange</p>
+        <span class="badge">Version {{ version }}</span>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>System Status</h2>
+            <p>{{ system_status }}</p>
+            <small>{{ now }}</small>
+        </div>
+
+        <div class="card">
+            <h2>Market Engine</h2>
+            <p>{{ market_status }}</p>
+        </div>
+
+        <div class="card">
+            <h2>Final AI Decision</h2>
+            <p class="decision">{{ committee.final_decision }}</p>
+            <small>{{ committee.confidence }}% confidence</small>
+        </div>
+
+        <div class="card">
+            <h2>Telegram Alerts</h2>
+            <p>{{ telegram_status }}</p>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>AI Investment Committee</h2>
+        <p>{{ committee.summary }}</p>
+
+        <div class="committee-grid">
+            {% for agent in committee.agents %}
+            <div class="agent-card">
+                <h3>{{ agent.name }}</h3>
+                <small>{{ agent.role }}</small>
+                <p class="decision">{{ agent.decision }}</p>
+                <p>{{ agent.confidence }}% confidence</p>
+                <p>{{ agent.comment }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>V10.3.1 Features</h2>
+        <ul>
+            <li>AI Committee engine created</li>
+            <li>Five specialist analyst agents added</li>
+            <li>Final decision and confidence score added</li>
+            <li>Committee API endpoint active at /committee</li>
+        </ul>
+    </div>
+</body>
+</html>
