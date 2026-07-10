@@ -1,13 +1,14 @@
 <!doctype html>
 <html>
 <head>
-    <title>NSE Signal Bot V11.0</title>
+    <title>NSE Signal Bot V11.2</title>
     <link rel="stylesheet" href="/static/css/style.css">
-</head>
+
+/head>
 <body>
 <div class="hero">
-    <h1>NSE Signal Bot V11.0</h1>
-    <p>Quantitative AI Trading Platform for the Nairobi Securities Exchange</p>
+    <h1>NSE Signal Bot V11.2</h1>
+    <p>Professional Market Intelligence Platform for the Nairobi Securities Exchange</p>
     <span class="badge">{{ version }}</span>
 </div>
 
@@ -21,8 +22,11 @@
 </div>
 
 <div class="panel">
-    <h2>Top Autonomous Opportunities</h2>
-    <table>
+
+
+
+
+    <table class="dashboard-table">
         <tr><th>Symbol</th><th>Signal</th><th>Score</th><th>RSI</th><th>MACD</th><th>Trend</th></tr>
         {% for item in assistant.ranked_opportunities %}
         <tr><td>{{ item.symbol }}</td><td>{{ item.signal }}</td><td>{{ item.score }}</td><td>{{ item.rsi }}</td><td>{{ item.macd }}</td><td>{{ item.trend }}</td></tr>
@@ -30,9 +34,44 @@
     </table>
 </div>
 
+
+<div class="panel">
+    <h2>AI Stock Screener</h2>
+
+    <table class="dashboard-table">
+        <tr>
+            <th>Rank</th>
+            <th>Symbol</th>
+            <th>Company</th>
+            <th>Price</th>
+            <th>Decision</th>
+            <th>Confidence</th>
+            <th>Risk</th>
+            <th>Position</th>
+        </tr>
+
+        {% for stock in screener %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+                <a href="/stocks/{{ stock.symbol }}">
+                    {{ stock.symbol }}
+                </a>
+            </td>
+            <td>{{ stock.name }}</td>
+            <td>KSh {{ stock.price }}</td>
+            <td>{{ stock.decision }}</td>
+            <td>{{ stock.confidence }}%</td>
+            <td>{{ stock.risk }}</td>
+            <td>{{ stock.position }}%</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
 <div class="panel">
     <h2>Live NSE Market Engine</h2>
-    <table>
+    <table class="dashboard-table">
         <tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Price</th><th>Change %</th><th>Volume</th></tr>
         {% for s in market.stocks %}
         <tr><td>{{ s.symbol }}</td><td>{{ s.name }}</td><td>{{ s.sector }}</td><td>{{ s.price }}</td><td>{{ s.change_pct }}</td><td>{{ s.volume }}</td></tr>
@@ -58,7 +97,7 @@
 
 <div class="panel">
     <h2>Portfolio Management</h2>
-    <table>
+    <table class="dashboard-table">
         <tr><th>Symbol</th><th>Shares</th><th>Avg Price</th><th>Current</th><th>Value</th><th>P/L %</th></tr>
         {% for h in portfolio.holdings %}
         <tr><td>{{ h.symbol }}</td><td>{{ h.shares }}</td><td>{{ h.avg_price }}</td><td>{{ h.current_price }}</td><td>{{ h.value }}</td><td>{{ h.pnl_pct }}</td></tr>

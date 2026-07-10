@@ -23,7 +23,7 @@ VERSION = "11.2 Professional Market Intelligence"
 @app.route("/")
 def dashboard():
     dashboard_data = build_dashboard()
-
+    screener = run_screener()
     market = get_market_snapshot()
     technicals = analyze_market(market["stocks"])
     portfolio = get_portfolio()
@@ -49,6 +49,7 @@ def dashboard():
         committee=committee,
         assistant=assistant,
         portfolio=portfolio,
+        screener=screener,
         telegram_status=telegram_status(),
         now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         system_status="Online",
