@@ -5,11 +5,11 @@ from services.ai_committee import run_committee
 from services.market_data import get_market_snapshot
 from services.technical_analysis import analyze_market
 from services.portfolio import get_portfolio
-from services.telegram_bot import telegram_status, send_telegram_alert
+from services.telegram_bot import telegram_status, send_telegram_alert, build_market_alert
 from services.autonomous_assistant import autonomous_decision
 
 app = Flask(__name__)
-VERSION = "10.4 Enterprise"
+VERSION = "11.0 Market Intelligence Platform"
 
 @app.route("/")
 def dashboard():
@@ -37,7 +37,7 @@ def health():
     return jsonify({
         "status": "online",
         "version": VERSION,
-        "service": "NSE Signal Bot V10.4 Enterprise",
+        "service": "NSE Signal Bot V11.0 Market Intelligence Platform",
         "time": datetime.now().isoformat()
     })
 
@@ -68,7 +68,7 @@ def assistant():
 
 @app.route("/telegram/test")
 def telegram_test():
-    result = send_telegram_alert("NSE Signal Bot V10.4 test alert: system online.")
+    result = send_telegram_alert("NSE Signal Bot V11.0 test alert: system online.")
     return jsonify(result)
 
 if __name__ == "__main__":
