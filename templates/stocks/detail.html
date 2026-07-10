@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ analysis.symbol }} — NSE Signal Bot V11.2</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="hero">
+    <h1>{{ analysis.symbol }} — {{ analysis.name }}</h1>
+    <p>{{ analysis.sector }} | NSE Signal Bot V11.2 Professional</p>
+    <a class="button" href="/">Back to Dashboard</a>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Price</h2>
+        <p class="decision">KSh {{ analysis.price }}</p>
+        <small>{{ analysis.trade_date }}</small>
+    </div>
+
+    <div class="card">
+        <h2>Signal</h2>
+        <p class="decision">{{ analysis.signal }}</p>
+        <small>Score: {{ analysis.score }}/100</small>
+    </div>
+
+    <div class="card">
+        <h2>RSI</h2>
+        <p class="decision">{{ analysis.rsi }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Trend</h2>
+        <p>{{ analysis.trend }}</p>
+    </div>
+</div>
+
+<div class="panel">
+    <h2>Price and Moving Averages</h2>
+    <canvas id="priceChart"></canvas>
+</div>
+
+<div class="panel">
+    <h2>RSI</h2>
+    <canvas id="rsiChart"></canvas>
+</div>
+
+<div class="panel">
+    <h2>MACD</h2>
+    <canvas id="macdChart"></canvas>
+</div>
+
+<div class="panel">
+    <h2>Technical Indicators</h2>
+    <table>
+        <tr><th>Indicator</th><th>Value</th></tr>
+        <tr><td>EMA 20</td><td>{{ analysis.ema20 }}</td></tr>
+        <tr><td>EMA 50</td><td>{{ analysis.ema50 }}</td></tr>
+        <tr><td>EMA 200</td><td>{{ analysis.ema200 }}</td></tr>
+        <tr><td>SMA 200</td><td>{{ analysis.sma200 }}</td></tr>
+        <tr><td>Bollinger Upper</td><td>{{ analysis.bb_upper }}</td></tr>
+        <tr><td>Bollinger Middle</td><td>{{ analysis.bb_middle }}</td></tr>
+        <tr><td>Bollinger Lower</td><td>{{ analysis.bb_lower }}</td></tr>
+        <tr><td>ATR 14</td><td>{{ analysis.atr14 }}</td></tr>
+        <tr><td>Momentum 10</td><td>{{ analysis.momentum10 }}</td></tr>
+        <tr><td>Volume Ratio</td><td>{{ analysis.volume_ratio }}</td></tr>
+    </table>
+</div>
+
+<div class="panel">
+    <h2>Signal Reasons</h2>
+    <ul>
+        {% for reason in analysis.reasons %}
+        <li>{{ reason }}</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<script>
+const chartData = {{ chart | tojson }};
+const labels = chartData.indicators.map(row => row.date);
+
+new Chart(document.getElementById("priceChart"), {
+    type: "line",
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: "Close",
+                data: chartData.indicators.map(row => row.close)
+            },
+            {
+                label: "EMA 20",
+                data: chartData.indicators.map(row => row.ema20)
+            },
+            {
+                label: "EMA 50",
+                data: chartData.indicators.map(row => row.ema50)
+            },
+            {
+                label: "Bollinger Upper",
+                data: chartData.indicators.map(row => row.bb_upper)
+            },
+            {
+                label: "Bollinger Lower",
+                data: chartData.indicators.map(row => row.bb_lower)
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: {
+            mode: "index",
+            intersect: false
+        }
+    }
+});
+
+new Chart(document.getElementById("rsiChart"), {
+    type: "line",
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: "RSI",
+                data: chartData.indicators.map(row => row.rsi)
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                min: 0,
+                max: 100
+            }
+        }
+    }
+});
+
+new Chart(document.getElementById("macdChart"), {
+    type: "line",
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: "MACD",
+                data: chartData.indicators.map(row => row.macd)
+            },
+            {
+                label: "Signal",
+                data: chartData.indicators.map(row => row.macd_signal)
+            }
+        ]
+    },
+    options: {
+        responsive: true
+    }
+});
+</script>
+
+</body>
+</html>

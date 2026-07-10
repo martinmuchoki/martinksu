@@ -8,6 +8,15 @@ from services.portfolio import get_portfolio
 from services.telegram_bot import telegram_status, send_telegram_alert
 from services.autonomous_assistant import autonomous_decision
 
+
+from services.market_engine import (
+    get_market_intelligence,
+    get_symbol_history,
+    scan_import_folder,
+)
+from services.indicator_engine import analyze_symbol
+from services.chart_engine import get_chart_data
+
 app = Flask(__name__)
 VERSION = "10.4 Enterprise"
 
@@ -70,6 +79,64 @@ def assistant():
 def telegram_test():
     result = send_telegram_alert("NSE Signal Bot V10.4 test alert: system online.")
     return jsonify(result)
+
+
+@app.route("/api/v11.2/market")
+def v112_market():
+    return jsonify(get_market_intelligence())
+
+
+@app.route("/api/v11.2/stock/<symbol>")
+def v112_stock(symbol):
+    analysis = analyze_symbol(symbol.upper())
+
+    if not analysis:
+        return jsonify({"error": "Symbol not found"}), 404
+
+    return jsonify(analysis)
+
+
+@app.route("/api/v11.2/chart/<symbol>")
+def v112_chart(symbol):
+    chart = get_chart_data(symbol.upper(), 120)
+
+    if not chart:
+        return jsonify({"error": "Symbol not found"}), 404
+
+    return jsonify(chart)
+
+
+@app.route("/api/v11.2/history/<symbol>")
+def v112_history(symbol):
+    result = get_symbol_history(symbol.upper(), 260)
+
+    if not result:
+        return jsonify({"error": "Symbol not found"}), 404
+
+    return jsonify(result)
+
+
+@app.route("/api/v11.2/import", methods=["POST"])
+def v112_import():
+    return jsonify(scan_import_folder())
+
+
+@app.route("/stocks/<symbol>")
+def stock_detail(symbol):
+    symbol = symbol.upper()
+    analysis = analyze_symbol(symbol)
+    chart = get_chart_data(symbol, 120)
+
+    if not analysis or not chart:
+        return jsonify({"error": "Symbol not found"}), 404
+
+    return render_template(
+        "stocks/detail.html",
+        version=VERSION,
+        analysis=analysis,
+        chart=chart,
+    )
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
