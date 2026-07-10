@@ -1,256 +1,404 @@
+:root {
+    --background: #07111f;
+    --surface: #0f1d2e;
+    --surface-light: #16283c;
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #edf4fb;
+    --muted: #91a4b7;
+    --accent: #27d17f;
+    --accent-dark: #168f58;
+    --warning: #f5c451;
+    --danger: #ff6b6b;
+    --blue: #5da9ff;
+    --radius: 16px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: #e5e7eb;
+    min-height: 100vh;
+    font-family: Inter, Arial, sans-serif;
+    color: var(--text);
+    background:
+        radial-gradient(circle at top right, rgba(39, 209, 127, 0.10), transparent 32%),
+        var(--background);
 }
-.hero {
-    padding: 40px;
-    background: linear-gradient(135deg, #064e3b, #0f172a);
+
+a {
+    color: inherit;
 }
-.hero h1 {
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 4%;
+    border-bottom: 1px solid var(--border);
+    background: rgba(7, 17, 31, 0.88);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(14px);
+}
+
+.topbar h1 {
+    margin: 3px 0;
+    font-size: clamp(24px, 4vw, 38px);
+}
+
+.subtitle,
+.section-description {
     margin: 0;
-    font-size: 36px;
+    color: var(--muted);
 }
-.hero p {
-    color: #cbd5e1;
+
+.eyebrow {
+    margin: 0;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
-.badge {
-    background: #22c55e;
-    color: #052e16;
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 16px var(--accent);
+}
+
+.dashboard-container {
+    width: min(1500px, 94%);
+    margin: 30px auto 70px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.summary-card,
+.dashboard-panel {
+    background: linear-gradient(145deg, rgba(22, 40, 60, 0.94), rgba(15, 29, 46, 0.96));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
+.summary-card {
+    min-height: 140px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.summary-card strong {
+    font-size: 20px;
+}
+
+.summary-card small,
+.card-label {
+    color: var(--muted);
+}
+
+.card-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.dashboard-panel {
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.panel-heading h2,
+.report-panel h2 {
+    margin: 4px 0 0;
+}
+
+.text-link,
+.symbol-link {
+    color: var(--blue);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.text-link:hover,
+.symbol-link:hover {
+    text-decoration: underline;
+}
+
+.two-column-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 0.65fr;
+    gap: 24px;
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.dashboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 780px;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.dashboard-table th {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.dashboard-table tbody tr {
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.signal-badge,
+.risk-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.signal-strong-buy,
+.signal-buy {
+    background: rgba(39, 209, 127, 0.16);
+    color: #5ef0a5;
+}
+
+.signal-hold,
+.signal-watch {
+    background: rgba(245, 196, 81, 0.16);
+    color: #ffd979;
+}
+
+.signal-sell {
+    background: rgba(255, 107, 107, 0.16);
+    color: #ff9292;
+}
+
+.risk-badge {
+    background: rgba(93, 169, 255, 0.14);
+    color: #8fc2ff;
+}
+
+.confidence-cell {
+    min-width: 105px;
+}
+
+.confidence-track {
+    height: 5px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent-dark), var(--accent));
+}
+
+.positive {
+    color: #5ef0a5;
+    font-weight: 700;
+}
+
+.negative {
+    color: #ff9292;
+    font-weight: 700;
+}
+
+.portfolio-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.portfolio-metrics div {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.portfolio-metrics span {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 7px;
+}
+
+.portfolio-metrics strong {
+    font-size: 18px;
+}
+
+.recommendation-box {
+    margin: 18px 0 0;
+    padding: 16px;
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    color: var(--muted);
+    background: rgba(39, 209, 127, 0.06);
+}
+
+.committee-result {
     padding: 8px 12px;
     border-radius: 999px;
-    font-weight: bold;
-}
-.grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-    padding: 25px;
-}
-.card, .panel {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 14px;
-    padding: 22px;
-}
-.card h2, .panel h2 {
-    color: #86efac;
-}
-.panel {
-    margin: 25px;
-}
-@media (max-width: 900px) {
-    .grid {
-        grid-template-columns: 1fr;
-    }
+    background: rgba(39, 209, 127, 0.12);
+    color: #5ef0a5;
+    font-weight: 800;
 }
 
-.committee-grid {
+.agent-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 14px;
-    margin-top: 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 22px;
 }
+
 .agent-card {
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 16px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.025);
 }
+
 .agent-card h3 {
-    color: #bbf7d0;
+    margin: 8px 0;
 }
-.decision {
-    font-size: 24px;
-    font-weight: bold;
-    color: #22c55e;
+
+.agent-role,
+.agent-confidence {
+    color: var(--muted);
+    font-size: 12px;
 }
-@media (max-width: 1100px) {
-    .committee-grid {
+
+.agent-decision {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+.report-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 10px;
+    color: #04120b;
+    background: var(--accent);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.secondary-button {
+    color: var(--text);
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+}
+
+.dashboard-footer {
+    padding: 24px;
+    color: var(--muted);
+    text-align: center;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1200px) {
+    .summary-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .two-column-grid {
         grid-template-columns: 1fr;
     }
 }
 
-/* Top Autonomous Opportunities — full-width table */
-.top-opportunities-section {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    grid-column: 1 / -1;
-    display: block;
-    box-sizing: border-box;
-}
-
-.top-opportunities-section h2 {
-    width: 100%;
-    margin: 0 0 14px 0;
-}
-
-.nse-market-table-wrapper {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    overflow-x: auto;
-    overflow-y: visible;
-    box-sizing: border-box;
-    -webkit-overflow-scrolling: touch;
-}
-
-.nse-market-table {
-    width: max-content !important;
-    min-width: 1100px !important;
-    max-width: none !important;
-    table-layout: auto !important;
-    border-collapse: collapse;
-}
-
-.nse-market-table th,
-.nse-market-table td {
-    width: auto !important;
-    min-width: 110px;
-    max-width: none !important;
-    padding: 12px 16px !important;
-    white-space: nowrap !important;
-    word-break: normal !important;
-    overflow-wrap: normal !important;
-    line-height: 1.4;
-    vertical-align: middle;
-    box-sizing: border-box;
-}
-
-.nse-market-table th:first-child,
-.nse-market-table td:first-child {
-    min-width: 150px;
-}
-
-@media (max-width: 768px) {
-    .top-opportunities-section {
-        grid-column: 1 / -1;
+@media (max-width: 800px) {
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
-    .nse-market-table {
-        min-width: 1000px !important;
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 
-    .nse-market-table th,
-    .nse-market-table td {
-        min-width: 105px;
-        padding: 10px 12px !important;
-        font-size: 12px;
+    .agent-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-panel {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
 
-/* DASHBOARD SPACING FIX START */
-
-/* Keep the main dashboard content aligned and compact */
-.dashboard-container,
-main,
-.content,
-.container {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Consistent spacing for dashboard panels */
-.panel,
-.card,
-.dashboard-section,
-.top-opportunities-section {
-    box-sizing: border-box;
-    width: 100%;
-    height: auto;
-    min-height: 0;
-    margin: 0 0 22px 0;
-    padding: 20px;
-}
-
-/* Prevent large unexplained vertical spaces */
-.top-opportunities-section,
-.nse-market-table-wrapper {
-    min-height: 0 !important;
-    height: auto !important;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-
-/* Headings */
-.panel h2,
-.card h2,
-.dashboard-section h2,
-.top-opportunities-section h2 {
-    margin: 0 0 18px 0;
-    padding: 0;
-    line-height: 1.25;
-}
-
-/* Responsive table container */
-.nse-market-table-wrapper,
-.table-wrapper {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    margin: 0;
-    padding: 0;
-}
-
-/* Tables should use all available width */
-.dashboard-table,
-.nse-market-table {
-    width: 100%;
-    max-width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    table-layout: auto;
-    margin: 0;
-}
-
-/* Proper spacing and alignment */
-.dashboard-table th,
-.dashboard-table td,
-.nse-market-table th,
-.nse-market-table td {
-    padding: 10px 12px;
-    text-align: left;
-    vertical-align: middle;
-    white-space: nowrap;
-    line-height: 1.35;
-}
-
-/* Keep sections separated without excessive blank space */
-.panel + .panel,
-.card + .card,
-.dashboard-section + .dashboard-section {
-    margin-top: 0;
-}
-
-/* Portfolio recommendation spacing */
-.recommendation,
-.portfolio-recommendation {
-    margin-top: 16px;
-    margin-bottom: 0;
-}
-
-/* Mobile layout */
-@media (max-width: 768px) {
-    .panel,
-    .card,
-    .dashboard-section,
-    .top-opportunities-section {
-        padding: 14px;
-        margin-bottom: 14px;
+@media (max-width: 520px) {
+    .summary-grid,
+    .portfolio-metrics {
+        grid-template-columns: 1fr;
     }
 
-    .dashboard-table th,
-    .dashboard-table td,
-    .nse-market-table th,
-    .nse-market-table td {
-        padding: 8px 10px;
-        font-size: 14px;
+    .dashboard-container {
+        width: 96%;
+    }
+
+    .dashboard-panel {
+        padding: 18px;
     }
 }
-
-/* DASHBOARD SPACING FIX END */
