@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AI Stock Screener — NSE Signal Bot V11.2</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="hero">
+    <h1>AI Stock Screener</h1>
+    <p>NSE Signal Bot V11.2 Professional Market Intelligence</p>
+    <a class="button" href="/">Back to Dashboard</a>
+</div>
+
+<div class="panel">
+    <h2>Ranked NSE Opportunities</h2>
+
+    <table class="dashboard-table">
+        <tr>
+            <th>Rank</th>
+            <th>Symbol</th>
+            <th>Company</th>
+            <th>Price</th>
+            <th>Decision</th>
+            <th>Confidence</th>
+            <th>Risk</th>
+            <th>Position</th>
+        </tr>
+
+        {% for stock in results %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+                <a href="/stocks/{{ stock.symbol }}">
+                    {{ stock.symbol }}
+                </a>
+            </td>
+            <td>{{ stock.name }}</td>
+            <td>KSh {{ stock.price }}</td>
+            <td>{{ stock.decision }}</td>
+            <td>{{ stock.confidence }}%</td>
+            <td>{{ stock.risk }}</td>
+            <td>{{ stock.position }}%</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+</body>
+</html>

@@ -1,13 +1,13 @@
 from flask import Flask, render_template, jsonify
 from datetime import datetime
-
+from services.dashboard_engine import build_dashboard
 from services.ai_committee import run_committee
 from services.market_data import get_market_snapshot
 from services.technical_analysis import analyze_market
 from services.portfolio import get_portfolio
 from services.telegram_bot import telegram_status, send_telegram_alert
 from services.autonomous_assistant import autonomous_decision
-
+from services.screener_engine import run_screener
 
 from services.market_engine import (
     get_market_intelligence,
@@ -18,42 +18,55 @@ from services.indicator_engine import analyze_symbol
 from services.chart_engine import get_chart_data
 
 app = Flask(__name__)
-VERSION = "10.4 Enterprise"
+VERSION = "11.2 Professional Market Intelligence"
 
 @app.route("/")
 def dashboard():
+    dashboard_data = build_dashboard()
+
     market = get_market_snapshot()
     technicals = analyze_market(market["stocks"])
-    committee = run_committee()
     portfolio = get_portfolio()
-    assistant = autonomous_decision(market, committee, portfolio, technicals)
+    committee = run_committee(
+        market=market,
+        technicals=technicals,
+        portfolio=portfolio,
+    )
+    assistant = autonomous_decision(
+        market,
+        committee,
+        portfolio,
+        technicals,
+    )
 
     return render_template(
         "dashboard.html",
         version=VERSION,
-        now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        system_status="Online",
-        telegram_status=telegram_status(),
+        dashboard=dashboard_data,
+        picks=dashboard_data["top_picks"],
         market=market,
         technicals=technicals,
         committee=committee,
+        assistant=assistant,
         portfolio=portfolio,
-        assistant=assistant
+        telegram_status=telegram_status(),
+        now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        system_status="Online",
     )
+
 
 @app.route("/health")
 def health():
     return jsonify({
         "status": "online",
         "version": VERSION,
-        "service": "NSE Signal Bot V10.4 Enterprise",
+        "service": "NSE Signal Bot V11.2 Professional",
         "time": datetime.now().isoformat()
     })
 
 @app.route("/market")
 def market():
     return jsonify(get_market_snapshot())
-
 @app.route("/technicals")
 def technicals():
     market = get_market_snapshot()
@@ -135,6 +148,18 @@ def stock_detail(symbol):
         version=VERSION,
         analysis=analysis,
         chart=chart,
+    )
+
+
+
+@app.route("/screener")
+def screener():
+    results = run_screener()
+
+    return render_template(
+        "screener.html",
+        version=VERSION,
+        results=results,
     )
 
 
