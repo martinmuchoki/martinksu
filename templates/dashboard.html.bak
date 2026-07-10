@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+    <title>NSE Signal Bot V11.2</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="hero">
+    <h1>NSE Signal Bot V11.2</h1>
+    <p>Professional Market Intelligence Platform for the Nairobi Securities Exchange</p>
+    <span class="badge">{{ version }}</span>
+</div>
+
+<div class="grid">
+    <div class="card"><h2>System</h2><p>{{ system_status }}</p><small>{{ now }}</small></div>
+    <div class="card"><h2>Market</h2><p>{{ market.market_status }}</p><small>Average: {{ market.average_change }}%</small></div>
+    <div class="card"><h2>AI Decision</h2><p class="decision">{{ committee.final_decision }}</p><small>{{ committee.confidence }}% confidence</small></div>
+    <div class="card"><h2>Assistant</h2><p class="decision">{{ assistant.action }}</p><small>{{ assistant.summary }}</small></div>
+    <div class="card"><h2>Portfolio</h2><p class="decision">KSh {{ portfolio.total_value }}</p><small>P/L {{ portfolio.pnl_pct }}%</small></div>
+    <div class="card"><h2>Telegram</h2><p>{{ telegram_status }}</p></div>
+</div>
+
+<div class="panel">
+    <h2>Top Autonomous Opportunities</h2>
+
+<div class="nse-market-table-wrapper">
+    <table class="nse-market-table">
+        <!-- existing table rows remain here -->
+    </table>
+</div>
+<h2>Top Autonomous Opportunities</h2>
+    <table>
+        <tr><th>Symbol</th><th>Signal</th><th>Score</th><th>RSI</th><th>MACD</th><th>Trend</th></tr>
+        {% for item in assistant.ranked_opportunities %}
+        <tr><td>{{ item.symbol }}</td><td>{{ item.signal }}</td><td>{{ item.score }}</td><td>{{ item.rsi }}</td><td>{{ item.macd }}</td><td>{{ item.trend }}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="panel">
+    <h2>Live NSE Market Engine</h2>
+    <table>
+        <tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Price</th><th>Change %</th><th>Volume</th></tr>
+        {% for s in market.stocks %}
+        <tr><td>{{ s.symbol }}</td><td>{{ s.name }}</td><td>{{ s.sector }}</td><td>{{ s.price }}</td><td>{{ s.change_pct }}</td><td>{{ s.volume }}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="panel">
+    <h2>AI Investment Committee 2.0</h2>
+    <p>{{ committee.summary }}</p>
+    <div class="committee-grid">
+        {% for agent in committee.agents %}
+        <div class="agent-card">
+            <h3>{{ agent.name }}</h3>
+            <small>{{ agent.role }}</small>
+            <p class="decision">{{ agent.decision }}</p>
+            <p>{{ agent.confidence }}% confidence</p>
+            <p>{{ agent.comment }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="panel">
+    <h2>Portfolio Management</h2>
+    <table>
+        <tr><th>Symbol</th><th>Shares</th><th>Avg Price</th><th>Current</th><th>Value</th><th>P/L %</th></tr>
+        {% for h in portfolio.holdings %}
+        <tr><td>{{ h.symbol }}</td><td>{{ h.shares }}</td><td>{{ h.avg_price }}</td><td>{{ h.current_price }}</td><td>{{ h.value }}</td><td>{{ h.pnl_pct }}</td></tr>
+        {% endfor %}
+    </table>
+    <p><b>Recommendation:</b> {{ portfolio.recommendation }}</p>
+</div>
+
+<div class="panel">
+    <h2>Daily Report</h2>
+    <p>Report generated and ready for download.</p>
+    <a class="button" href="/download_report">Download Daily Report</a>
+</div>
+</body>
+</html>

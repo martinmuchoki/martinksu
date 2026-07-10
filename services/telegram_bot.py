@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv("/root/nse_signal_bot_v10_3/.env")
 import os
 import requests
 

@@ -1,0 +1,140 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+}
+.hero {
+    padding: 40px;
+    background: linear-gradient(135deg, #064e3b, #0f172a);
+}
+.hero h1 {
+    margin: 0;
+    font-size: 36px;
+}
+.hero p {
+    color: #cbd5e1;
+}
+.badge {
+    background: #22c55e;
+    color: #052e16;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: bold;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    padding: 25px;
+}
+.card, .panel {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 22px;
+}
+.card h2, .panel h2 {
+    color: #86efac;
+}
+.panel {
+    margin: 25px;
+}
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.committee-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+}
+.agent-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px;
+}
+.agent-card h3 {
+    color: #bbf7d0;
+}
+.decision {
+    font-size: 24px;
+    font-weight: bold;
+    color: #22c55e;
+}
+@media (max-width: 1100px) {
+    .committee-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* Live NSE Market Engine table */
+.nse-market-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.nse-market-table {
+    width: 100%;
+    min-width: 950px;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.nse-market-table th,
+.nse-market-table td {
+    white-space: nowrap;
+    padding: 10px 12px;
+}
+
+@media (max-width: 768px) {
+    .nse-market-table {
+        min-width: 850px;
+    }
+
+    .nse-market-table th,
+    .nse-market-table td {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+}
+
+/* Top Autonomous Opportunities table fix */
+.nse-market-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+}
+
+.nse-market-table {
+    width: 100%;
+    min-width: 950px;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.nse-market-table th,
+.nse-market-table td {
+    padding: 10px 12px;
+    white-space: nowrap;
+    text-align: left;
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .nse-market-table {
+        min-width: 850px;
+    }
+
+    .nse-market-table th,
+    .nse-market-table td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+

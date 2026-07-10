@@ -1,0 +1,144 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+}
+.hero {
+    padding: 40px;
+    background: linear-gradient(135deg, #064e3b, #0f172a);
+}
+.hero h1 {
+    margin: 0;
+    font-size: 36px;
+}
+.hero p {
+    color: #cbd5e1;
+}
+.badge {
+    background: #22c55e;
+    color: #052e16;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: bold;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    padding: 25px;
+}
+.card, .panel {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 22px;
+}
+.card h2, .panel h2 {
+    color: #86efac;
+}
+.panel {
+    margin: 25px;
+}
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.committee-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+}
+.agent-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px;
+}
+.agent-card h3 {
+    color: #bbf7d0;
+}
+.decision {
+    font-size: 24px;
+    font-weight: bold;
+    color: #22c55e;
+}
+@media (max-width: 1100px) {
+    .committee-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Top Autonomous Opportunities — full-width table */
+.top-opportunities-section {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    grid-column: 1 / -1;
+    display: block;
+    box-sizing: border-box;
+}
+
+.top-opportunities-section h2 {
+    width: 100%;
+    margin: 0 0 14px 0;
+}
+
+.nse-market-table-wrapper {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+}
+
+.nse-market-table {
+    width: max-content !important;
+    min-width: 1100px !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    border-collapse: collapse;
+}
+
+.nse-market-table th,
+.nse-market-table td {
+    width: auto !important;
+    min-width: 110px;
+    max-width: none !important;
+    padding: 12px 16px !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    line-height: 1.4;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+.nse-market-table th:first-child,
+.nse-market-table td:first-child {
+    min-width: 150px;
+}
+
+@media (max-width: 768px) {
+    .top-opportunities-section {
+        grid-column: 1 / -1;
+    }
+
+    .nse-market-table {
+        min-width: 1000px !important;
+    }
+
+    .nse-market-table th,
+    .nse-market-table td {
+        min-width: 105px;
+        padding: 10px 12px !important;
+        font-size: 12px;
+    }
+}
+
