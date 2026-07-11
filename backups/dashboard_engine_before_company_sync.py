@@ -1,4 +1,3 @@
-from services.company_sync import get_listed_companies
 from services.market_engine import get_market_intelligence
 from services.ai_committee import run_stock_committee
 from services.portfolio import get_portfolio
@@ -53,7 +52,6 @@ def build_dashboard():
     )
 
     return {
-        "listed_companies": get_listed_companies(),
         "market": market,
         "portfolio": portfolio,
         "top_picks": valid_picks[:5],

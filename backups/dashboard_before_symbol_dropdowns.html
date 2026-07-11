@@ -280,96 +280,6 @@
     </section>
 
     
-
-<section class="dashboard-panel cash-summary-panel">
-    <div class="panel-heading">
-        <div>
-            <p class="eyebrow">Capital management</p>
-            <h2>Cash and Equity Summary</h2>
-        </div>
-
-        <small>{{ cash_summary.updated_at }}</small>
-    </div>
-
-    <div class="cash-summary-grid">
-        <article class="cash-summary-card">
-            <span>Starting Capital</span>
-            <strong>KSh {{ "{:,.2f}".format(cash_summary.starting_capital) }}</strong>
-        </article>
-
-        <article class="cash-summary-card">
-            <span>Available Cash</span>
-            <strong>KSh {{ "{:,.2f}".format(cash_summary.cash_balance) }}</strong>
-        </article>
-
-        <article class="cash-summary-card">
-            <span>Invested Cost</span>
-            <strong>KSh {{ "{:,.2f}".format(cash_summary.invested_cost) }}</strong>
-        </article>
-
-        <article class="cash-summary-card">
-            <span>Portfolio Value</span>
-            <strong>KSh {{ "{:,.2f}".format(cash_summary.portfolio_value) }}</strong>
-        </article>
-
-        <article class="cash-summary-card">
-            <span>Total Equity</span>
-            <strong>KSh {{ "{:,.2f}".format(cash_summary.total_equity) }}</strong>
-        </article>
-
-        <article class="cash-summary-card">
-            <span>Unrealized Profit</span>
-            <strong class="{% if cash_summary.unrealized_profit >= 0 %}positive{% else %}negative{% endif %}">
-                KSh {{ "{:,.2f}".format(cash_summary.unrealized_profit) }}
-            </strong>
-        </article>
-
-        <article class="cash-summary-card">
-            <span>Realized Profit</span>
-            <strong class="{% if cash_summary.realized_profit >= 0 %}positive{% else %}negative{% endif %}">
-                KSh {{ "{:,.2f}".format(cash_summary.realized_profit) }}
-            </strong>
-        </article>
-
-        <article class="cash-summary-card">
-            <span>Total Profit</span>
-            <strong class="{% if cash_summary.total_profit >= 0 %}positive{% else %}negative{% endif %}">
-                KSh {{ "{:,.2f}".format(cash_summary.total_profit) }}
-            </strong>
-        </article>
-    </div>
-
-    <div class="cash-allocation-grid">
-        <div>
-            <div class="cash-allocation-label">
-                <span>Cash allocation</span>
-                <strong>{{ cash_summary.cash_percentage }}%</strong>
-            </div>
-
-            <div class="cash-allocation-track">
-                <div
-                    class="cash-allocation-fill cash-allocation-cash"
-                    style="width: {{ cash_summary.cash_percentage }}%">
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <div class="cash-allocation-label">
-                <span>Invested allocation</span>
-                <strong>{{ cash_summary.invested_percentage }}%</strong>
-            </div>
-
-            <div class="cash-allocation-track">
-                <div
-                    class="cash-allocation-fill cash-allocation-invested"
-                    style="width: {{ cash_summary.invested_percentage }}%">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 <section class="two-column-grid portfolio-transaction-grid">
 
     <article class="dashboard-panel">
@@ -383,14 +293,11 @@
         <form method="post" action="/portfolio/buy" class="transaction-form">
             <label>
                 Symbol
-                <select name="symbol" required>
-                    <option value="">Select stock</option>
-                    {% for stock in dashboard.listed_companies %}
-                    <option value="{{ stock.symbol }}">
-                        {{ stock.symbol }} — {{ stock.name }}
-                    </option>
-                    {% endfor %}
-                </select>
+                <input
+                    name="symbol"
+                    placeholder="KCB"
+                    autocomplete="off"
+                    required>
             </label>
 
             <label>
@@ -430,14 +337,11 @@
         <form method="post" action="/portfolio/sell" class="transaction-form">
             <label>
                 Symbol
-                <select name="symbol" required>
-                    <option value="">Select stock</option>
-                    {% for stock in dashboard.listed_companies %}
-                    <option value="{{ stock.symbol }}">
-                        {{ stock.symbol }} — {{ stock.name }}
-                    </option>
-                    {% endfor %}
-                </select>
+                <input
+                    name="symbol"
+                    placeholder="KCB"
+                    autocomplete="off"
+                    required>
             </label>
 
             <label>

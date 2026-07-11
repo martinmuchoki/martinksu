@@ -1,0 +1,101 @@
+{
+  "Agricultural": {
+    "EGAD": "Eaagads Ltd",
+    "KUKZ": "Kakuzi Plc",
+    "KAPC": "Kapchorua Tea Kenya Plc",
+    "LIMT": "Limuru Tea Plc",
+    "SASN": "Sasini Plc",
+    "WTK": "Williamson Tea Kenya Plc"
+  },
+  "Automobiles and Accessories": {
+    "CGEN": "Car and General (K) Ltd"
+  },
+  "Banking": {
+    "ABSA": "ABSA Bank Kenya Plc",
+    "BKG": "BK Group Plc",
+    "COOP": "Co-operative Bank of Kenya Ltd",
+    "DTK": "Diamond Trust Bank Kenya Ltd",
+    "EQTY": "Equity Group Holdings Plc",
+    "FMLY": "Family Bank Limited",
+    "HFCK": "HFCB Group Plc",
+    "IMH": "I & M Holdings Plc",
+    "KCB": "KCB Group Plc",
+    "NCBA": "NCBA Group Plc",
+    "SBIC": "Stanbic Holdings Plc",
+    "SCBK": "Standard Chartered Bank Kenya Ltd"
+  },
+  "Commercial and Services": {
+    "DCON": "Deacons (East Africa) Plc",
+    "EVRD": "Eveready East Africa Ltd",
+    "XPRS": "Express Kenya Plc",
+    "HBE": "Homeboyz Entertainment Plc",
+    "KQ": "Kenya Airways Plc",
+    "LKL": "Longhorn Publishers Plc",
+    "NBV": "Nairobi Business Ventures Ltd",
+    "NMG": "Nation Media Group Plc",
+    "SMER": "Sameer Africa Plc",
+    "SGL": "Standard Group Plc",
+    "TPSE": "TPS Eastern Africa (Serena) Ltd",
+    "UCHM": "Uchumi Supermarket Plc",
+    "SCAN": "WPP ScanGroup Plc"
+  },
+  "Construction and Allied": {
+    "ARM": "ARM Cement Plc",
+    "BAMB": "Bamburi Cement Ltd",
+    "CRWN": "Crown Paints Kenya Plc",
+    "CABL": "East African Cables Plc",
+    "PORT": "East African Portland Cement Ltd"
+  },
+  "Energy and Petroleum": {
+    "KEGN": "Kenya Electricity Generating Company Plc",
+    "KPC": "Kenya Pipeline Company Plc",
+    "KPLC-P4": "Kenya Power and Lighting Co. Plc 4% Preferential",
+    "KPLC-P7": "Kenya Power and Lighting Co. Plc 7% Preferential",
+    "KPLC": "Kenya Power and Lighting Company Plc",
+    "TOTL": "TotalEnergies Marketing Kenya Plc",
+    "UMME": "Umeme Ltd"
+  },
+  "Insurance": {
+    "BRIT": "Britam Holdings Plc",
+    "CIC": "CIC Insurance Group Ltd",
+    "JUB": "Jubilee Holdings Ltd",
+    "KNRE": "Kenya Re-Insurance Corporation Ltd",
+    "LBTY": "Liberty Kenya Holdings Ltd",
+    "SLAM": "Sanlam Allianz Holdings (Kenya) Plc",
+    "SLAM-R": "Sanlam Allianz Holdings (Kenya) Plc (Rights)"
+  },
+  "Investment": {
+    "CTUM": "Centum Investment Company Plc",
+    "HAFR": "Home Afrika Ltd",
+    "KURV": "Kurwitu Ventures Ltd",
+    "OCH": "Olympia Capital Holdings Ltd",
+    "TCL": "Trans-Century Plc",
+    "TCL-R": "Trans-Century Plc (Rights)"
+  },
+  "Investment Services": {
+    "NSE": "Nairobi Securities Exchange Plc"
+  },
+  "Manufacturing and Allied": {
+    "AMAC": "Africa Mega Agricorp Plc",
+    "BOC": "BOC Kenya Plc",
+    "BAT": "British American Tobacco Kenya Plc",
+    "CARB": "Carbacid Investments Plc",
+    "EABL": "East African Breweries Ltd",
+    "FTGH": "Flame Tree Group Holdings Ltd",
+    "MSC": "Mumias Sugar Company Ltd",
+    "SKL": "Shri Krishana Overseas Plc",
+    "UNGA": "Unga Group Ltd"
+  },
+  "Telecommunication": {
+    "SCOM": "Safaricom Plc"
+  },
+  "Real Estate Investment Trusts": {
+    "ALP": "Africa Logistics Properties Industrial I-REIT",
+    "LAPR": "LAPTrust Imara Income-REIT",
+    "TRFC": "Two Rivers Internat'l Finance & Innovation Center"
+  },
+  "Exchange Traded Funds": {
+    "GLD": "ABSA NewGold ETF",
+    "SMWF": "Satrix MSCI World Feeder ETF"
+  }
+}

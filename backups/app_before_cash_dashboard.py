@@ -21,7 +21,6 @@ from services.portfolio_transactions import (
     buy_shares,
     sell_shares,
     get_transactions,
-    get_cash_summary,
 )
 app = Flask(__name__)
 VERSION = "11.2 Professional Market Intelligence"
@@ -45,9 +44,6 @@ def dashboard():
         technicals,
     )
 
-    transactions = get_transactions(20)
-    cash_summary = get_cash_summary()
-
     return render_template(
         "dashboard.html",
         version=VERSION,
@@ -62,8 +58,6 @@ def dashboard():
         telegram_status=telegram_status(),
         now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         system_status="Online",
-        transactions=transactions,
-        cash_summary=cash_summary,
     )
 
 

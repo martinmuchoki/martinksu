@@ -1,0 +1,732 @@
+{
+  "EGAD": {
+    "symbol": "EGAD",
+    "name": "Eaagads Ltd",
+    "sector": "Agricultural",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KUKZ": {
+    "symbol": "KUKZ",
+    "name": "Kakuzi Plc",
+    "sector": "Agricultural",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KAPC": {
+    "symbol": "KAPC",
+    "name": "Kapchorua Tea Kenya Plc",
+    "sector": "Agricultural",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "LIMT": {
+    "symbol": "LIMT",
+    "name": "Limuru Tea Plc",
+    "sector": "Agricultural",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SASN": {
+    "symbol": "SASN",
+    "name": "Sasini Plc",
+    "sector": "Agricultural",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "WTK": {
+    "symbol": "WTK",
+    "name": "Williamson Tea Kenya Plc",
+    "sector": "Agricultural",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "CGEN": {
+    "symbol": "CGEN",
+    "name": "Car and General (K) Ltd",
+    "sector": "Automobiles and Accessories",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "ABSA": {
+    "symbol": "ABSA",
+    "name": "ABSA Bank Kenya Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "BKG": {
+    "symbol": "BKG",
+    "name": "BK Group Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "COOP": {
+    "symbol": "COOP",
+    "name": "Co-operative Bank of Kenya Ltd",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "DTK": {
+    "symbol": "DTK",
+    "name": "Diamond Trust Bank Kenya Ltd",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "EQTY": {
+    "symbol": "EQTY",
+    "name": "Equity Group Holdings Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "FMLY": {
+    "symbol": "FMLY",
+    "name": "Family Bank Limited",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "HFCK": {
+    "symbol": "HFCK",
+    "name": "HFCB Group Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "IMH": {
+    "symbol": "IMH",
+    "name": "I & M Holdings Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KCB": {
+    "symbol": "KCB",
+    "name": "KCB Group Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "NCBA": {
+    "symbol": "NCBA",
+    "name": "NCBA Group Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SBIC": {
+    "symbol": "SBIC",
+    "name": "Stanbic Holdings Plc",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SCBK": {
+    "symbol": "SCBK",
+    "name": "Standard Chartered Bank Kenya Ltd",
+    "sector": "Banking",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "DCON": {
+    "symbol": "DCON",
+    "name": "Deacons (East Africa) Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "EVRD": {
+    "symbol": "EVRD",
+    "name": "Eveready East Africa Ltd",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "XPRS": {
+    "symbol": "XPRS",
+    "name": "Express Kenya Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "HBE": {
+    "symbol": "HBE",
+    "name": "Homeboyz Entertainment Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KQ": {
+    "symbol": "KQ",
+    "name": "Kenya Airways Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "LKL": {
+    "symbol": "LKL",
+    "name": "Longhorn Publishers Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "NBV": {
+    "symbol": "NBV",
+    "name": "Nairobi Business Ventures Ltd",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "NMG": {
+    "symbol": "NMG",
+    "name": "Nation Media Group Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SMER": {
+    "symbol": "SMER",
+    "name": "Sameer Africa Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SGL": {
+    "symbol": "SGL",
+    "name": "Standard Group Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "TPSE": {
+    "symbol": "TPSE",
+    "name": "TPS Eastern Africa (Serena) Ltd",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "UCHM": {
+    "symbol": "UCHM",
+    "name": "Uchumi Supermarket Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SCAN": {
+    "symbol": "SCAN",
+    "name": "WPP ScanGroup Plc",
+    "sector": "Commercial and Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "ARM": {
+    "symbol": "ARM",
+    "name": "ARM Cement Plc",
+    "sector": "Construction and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "BAMB": {
+    "symbol": "BAMB",
+    "name": "Bamburi Cement Ltd",
+    "sector": "Construction and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "CRWN": {
+    "symbol": "CRWN",
+    "name": "Crown Paints Kenya Plc",
+    "sector": "Construction and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "CABL": {
+    "symbol": "CABL",
+    "name": "East African Cables Plc",
+    "sector": "Construction and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "PORT": {
+    "symbol": "PORT",
+    "name": "East African Portland Cement Ltd",
+    "sector": "Construction and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KEGN": {
+    "symbol": "KEGN",
+    "name": "Kenya Electricity Generating Company Plc",
+    "sector": "Energy and Petroleum",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KPC": {
+    "symbol": "KPC",
+    "name": "Kenya Pipeline Company Plc",
+    "sector": "Energy and Petroleum",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KPLC-P4": {
+    "symbol": "KPLC-P4",
+    "name": "Kenya Power and Lighting Co. Plc 4% Preferential",
+    "sector": "Energy and Petroleum",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "PREFERENCE_SHARE",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KPLC-P7": {
+    "symbol": "KPLC-P7",
+    "name": "Kenya Power and Lighting Co. Plc 7% Preferential",
+    "sector": "Energy and Petroleum",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "PREFERENCE_SHARE",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KPLC": {
+    "symbol": "KPLC",
+    "name": "Kenya Power and Lighting Company Plc",
+    "sector": "Energy and Petroleum",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "TOTL": {
+    "symbol": "TOTL",
+    "name": "TotalEnergies Marketing Kenya Plc",
+    "sector": "Energy and Petroleum",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "UMME": {
+    "symbol": "UMME",
+    "name": "Umeme Ltd",
+    "sector": "Energy and Petroleum",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "BRIT": {
+    "symbol": "BRIT",
+    "name": "Britam Holdings Plc",
+    "sector": "Insurance",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "CIC": {
+    "symbol": "CIC",
+    "name": "CIC Insurance Group Ltd",
+    "sector": "Insurance",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "JUB": {
+    "symbol": "JUB",
+    "name": "Jubilee Holdings Ltd",
+    "sector": "Insurance",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KNRE": {
+    "symbol": "KNRE",
+    "name": "Kenya Re-Insurance Corporation Ltd",
+    "sector": "Insurance",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "LBTY": {
+    "symbol": "LBTY",
+    "name": "Liberty Kenya Holdings Ltd",
+    "sector": "Insurance",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SLAM": {
+    "symbol": "SLAM",
+    "name": "Sanlam Allianz Holdings (Kenya) Plc",
+    "sector": "Insurance",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SLAM-R": {
+    "symbol": "SLAM-R",
+    "name": "Sanlam Allianz Holdings (Kenya) Plc (Rights)",
+    "sector": "Insurance",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "RIGHTS",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "CTUM": {
+    "symbol": "CTUM",
+    "name": "Centum Investment Company Plc",
+    "sector": "Investment",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "HAFR": {
+    "symbol": "HAFR",
+    "name": "Home Afrika Ltd",
+    "sector": "Investment",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "KURV": {
+    "symbol": "KURV",
+    "name": "Kurwitu Ventures Ltd",
+    "sector": "Investment",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "OCH": {
+    "symbol": "OCH",
+    "name": "Olympia Capital Holdings Ltd",
+    "sector": "Investment",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "TCL": {
+    "symbol": "TCL",
+    "name": "Trans-Century Plc",
+    "sector": "Investment",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "TCL-R": {
+    "symbol": "TCL-R",
+    "name": "Trans-Century Plc (Rights)",
+    "sector": "Investment",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "RIGHTS",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "NSE": {
+    "symbol": "NSE",
+    "name": "Nairobi Securities Exchange Plc",
+    "sector": "Investment Services",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "AMAC": {
+    "symbol": "AMAC",
+    "name": "Africa Mega Agricorp Plc",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "BOC": {
+    "symbol": "BOC",
+    "name": "BOC Kenya Plc",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "BAT": {
+    "symbol": "BAT",
+    "name": "British American Tobacco Kenya Plc",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "CARB": {
+    "symbol": "CARB",
+    "name": "Carbacid Investments Plc",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "EABL": {
+    "symbol": "EABL",
+    "name": "East African Breweries Ltd",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "FTGH": {
+    "symbol": "FTGH",
+    "name": "Flame Tree Group Holdings Ltd",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "MSC": {
+    "symbol": "MSC",
+    "name": "Mumias Sugar Company Ltd",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SKL": {
+    "symbol": "SKL",
+    "name": "Shri Krishana Overseas Plc",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "UNGA": {
+    "symbol": "UNGA",
+    "name": "Unga Group Ltd",
+    "sector": "Manufacturing and Allied",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SCOM": {
+    "symbol": "SCOM",
+    "name": "Safaricom Plc",
+    "sector": "Telecommunication",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "EQUITY",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "ALP": {
+    "symbol": "ALP",
+    "name": "Africa Logistics Properties Industrial I-REIT",
+    "sector": "Real Estate Investment Trusts",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "REIT",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "LAPR": {
+    "symbol": "LAPR",
+    "name": "LAPTrust Imara Income-REIT",
+    "sector": "Real Estate Investment Trusts",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "REIT",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "TRFC": {
+    "symbol": "TRFC",
+    "name": "Two Rivers Internat'l Finance & Innovation Center",
+    "sector": "Real Estate Investment Trusts",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "REIT",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "GLD": {
+    "symbol": "GLD",
+    "name": "ABSA NewGold ETF",
+    "sector": "Exchange Traded Funds",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "ETF",
+    "active": true,
+    "source": "MyStocks"
+  },
+  "SMWF": {
+    "symbol": "SMWF",
+    "name": "Satrix MSCI World Feeder ETF",
+    "sector": "Exchange Traded Funds",
+    "market": "NSE",
+    "currency": "KES",
+    "asset_type": "ETF",
+    "active": true,
+    "source": "MyStocks"
+  }
+}
