@@ -36,3 +36,7 @@ data/*.html
 
 # macOS
 .DS_Store
+
+# Local audit and development tests
+audit_*.sh
+test_*.py
