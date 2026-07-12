@@ -1,6 +1,38 @@
-venv/
+# Python
 __pycache__/
 *.pyc
-.env
+
+# Virtual environment
+venv/
+
+# Database
+database/*.db
+
+# Logs
 logs/
-__pycache__/
+*.log
+
+# Reports
+reports/
+
+# Backups
+backups/
+*.tar.gz
+
+# Temporary files
+*.backup*
+*.before*
+*.tmp
+
+# Secrets
+.mip_admin_credentials
+.ssh*
+.env
+
+# Runtime data
+data/*.json
+data/*.png
+data/*.html
+
+# macOS
+.DS_Store

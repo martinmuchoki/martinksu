@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <title>MIP PRO | Sign In</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="login-page">
+
+<main class="login-shell">
+    <section class="login-card">
+
+        <img
+            class="login-logo-image"
+            src="{{ url_for('static', filename='images/mip_pro_logo.png') }}"
+            alt="MIP PRO">
+
+        <p class="login-platform-name">
+            Market Intelligence Platform
+        </p>
+
+        <h1>Professional Intelligence Suite</h1>
+
+        <p class="login-tagline">
+            AI-Powered Investment Intelligence for Africa
+        </p>
+
+        {% if error %}
+        <div class="login-error">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" class="login-form">
+
+            <label>
+                Username
+                <input
+                    type="text"
+                    name="username"
+                    autocomplete="username"
+                    required
+                    autofocus>
+            </label>
+
+            <label>
+                Password
+                <input
+                    type="password"
+                    name="password"
+                    autocomplete="current-password"
+                    required>
+            </label>
+
+            <button type="submit" class="login-button">
+                Sign In
+            </button>
+        </form>
+
+        <div class="login-features">
+            <span>Live NSE Data</span>
+            <span>Predictive AI</span>
+            <span>Institutional Analytics</span>
+        </div>
+
+        <footer class="login-footer">
+            <strong>MIP PRO</strong> · Version {{ version }}<br>
+            Built in Kenya · Designed for African Markets
+        </footer>
+
+    </section>
+</main>
+
+</body>
+</html>

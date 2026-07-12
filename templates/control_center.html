@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <title>MIP PRO — Enterprise Control Center</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/v115.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/control_center.css') }}">
+</head>
+
+<body class="control-center-page">
+
+<header class="app-header">
+    <div class="brand-area">
+        <img
+            class="brand-logo"
+            src="{{ url_for('static', filename='images/mip_pro_logo.png') }}"
+            alt="MIP PRO">
+
+        <div class="brand-copy">
+            <strong>MIP PRO</strong>
+            <span>Enterprise Control Center</span>
+        </div>
+    </div>
+
+    <nav class="header-actions">
+        <a href="/">Dashboard</a>
+        <a href="/about">About</a>
+        <a href="/logout">Logout</a>
+    </nav>
+</header>
+
+<main class="control-center-shell">
+
+    <section class="control-hero">
+        <div>
+            <span class="section-label">
+                Enterprise Operations
+            </span>
+
+            <h1>Control Center</h1>
+
+            <p>
+                Live application, server, database,
+                AI-learning and delivery status.
+            </p>
+        </div>
+
+        <div class="control-online-badge">
+            <span></span>
+            System Online
+        </div>
+    </section>
+
+    <section class="control-summary-grid">
+
+        <article class="control-card">
+            <span>Application</span>
+            <strong>
+                {{ control.application.status }}
+            </strong>
+            <small>
+                {{ control.application.version }}
+            </small>
+        </article>
+
+        <article class="control-card">
+            <span>Server Uptime</span>
+            <strong>
+                {{ control.server.uptime }}
+            </strong>
+            <small>
+                {{ control.server.hostname }}
+            </small>
+        </article>
+
+        <article class="control-card">
+            <span>AI Learning</span>
+            <strong>
+                {{ control.learning.status }}
+            </strong>
+            <small>
+                {{ control.learning.evaluations }}
+                evaluations
+            </small>
+        </article>
+
+        <article class="control-card">
+            <span>Database</span>
+            <strong>
+                {{ control.database.integrity }}
+            </strong>
+            <small>
+                {{ control.database.size }}
+            </small>
+        </article>
+
+    </section>
+
+    <section class="control-grid two-columns">
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-label">
+                        Server Health
+                    </span>
+
+                    <h2>Infrastructure</h2>
+                </div>
+            </div>
+
+            <div class="health-list">
+
+                <div>
+                    <span>CPU load</span>
+                    <strong>
+                        {{ control.server.cpu.estimated_usage_pct }}%
+                    </strong>
+                </div>
+
+                <div>
+                    <span>CPU cores</span>
+                    <strong>
+                        {{ control.server.cpu.cores }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Memory used</span>
+                    <strong>
+                        {{ control.server.memory.used }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Memory usage</span>
+                    <strong>
+                        {{ control.server.memory.usage_pct }}%
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Disk used</span>
+                    <strong>
+                        {{ control.server.disk.used }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Disk free</span>
+                    <strong>
+                        {{ control.server.disk.free }}
+                    </strong>
+                </div>
+
+            </div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-label">
+                        Data Platform
+                    </span>
+
+                    <h2>Database Health</h2>
+                </div>
+            </div>
+
+            <div class="health-list">
+
+                <div>
+                    <span>NSE securities</span>
+                    <strong>
+                        {{ control.database.stocks }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Price records</span>
+                    <strong>
+                        {{ control.database.price_history }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Recommendations</span>
+                    <strong>
+                        {{ control.database.recommendations }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Evaluations</span>
+                    <strong>
+                        {{ control.database.evaluations }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Portfolio holdings</span>
+                    <strong>
+                        {{ control.database.portfolio_holdings }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Tables</span>
+                    <strong>
+                        {{ control.database.tables }}
+                    </strong>
+                </div>
+
+            </div>
+        </article>
+
+    </section>
+
+    <section class="control-grid two-columns">
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-label">
+                        AI Intelligence
+                    </span>
+
+                    <h2>Learning Status</h2>
+                </div>
+            </div>
+
+            <div class="health-list">
+
+                <div>
+                    <span>Learning score</span>
+                    <strong>
+                        {{ control.learning.learning_score }}%
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Historical accuracy</span>
+                    <strong>
+                        {{ control.learning.accuracy }}%
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Average return</span>
+                    <strong>
+                        {{ control.learning.average_return }}%
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Confidence adjustment</span>
+                    <strong>
+                        {{ control.learning.confidence_adjustment }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Recommendations</span>
+                    <strong>
+                        {{ control.learning.recommendations }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Successful outcomes</span>
+                    <strong>
+                        {{ control.learning.successful }}
+                    </strong>
+                </div>
+
+            </div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-label">
+                        Delivery Systems
+                    </span>
+
+                    <h2>Reports and Alerts</h2>
+                </div>
+            </div>
+
+            <div class="delivery-list">
+
+                <div>
+                    <span>Telegram</span>
+                    <strong>
+                        {{ control.telegram.status }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>PDF report</span>
+                    <strong>
+                        {% if control.pdf.available %}
+                            Available
+                        {% else %}
+                            Not found
+                        {% endif %}
+                    </strong>
+
+                    <small>
+                        {{ control.pdf.modified_at or "No report yet" }}
+                    </small>
+                </div>
+
+                <div>
+                    <span>Latest backup</span>
+                    <strong>
+                        {% if control.backup.available %}
+                            {{ control.backup.name }}
+                        {% else %}
+                            Not found
+                        {% endif %}
+                    </strong>
+
+                    <small>
+                        {{ control.backup.modified_at or "No backup found" }}
+                    </small>
+                </div>
+
+                <div>
+                    <span>Latest log</span>
+                    <strong>
+                        {% if control.latest_log.available %}
+                            {{ control.latest_log.name }}
+                        {% else %}
+                            Not found
+                        {% endif %}
+                    </strong>
+
+                    <small>
+                        {{ control.latest_log.modified_at or "No log found" }}
+                    </small>
+                </div>
+
+            </div>
+        </article>
+
+    </section>
+
+    
+<section class="panel scheduler-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="section-label">
+                Enterprise Automation
+            </span>
+            <h2>Enterprise Scheduler</h2>
+        </div>
+
+        <span class="scheduler-status-badge">
+            {{ control.scheduler.status }}
+        </span>
+    </div>
+
+    <div class="health-list">
+        <div>
+            <span>Timezone</span>
+            <strong>
+                {{ control.scheduler.timezone }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Schedule</span>
+            <strong>
+                {{ control.scheduler.schedule }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Current Kenya Time</span>
+            <strong>
+                {{ control.scheduler.current_kenya_time }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Next Run</span>
+            <strong>
+                {{ control.scheduler.next_run }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Today's Runs</span>
+            <strong>
+                {{ control.scheduler.today_runs }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Successful Today</span>
+            <strong>
+                {{ control.scheduler.successful_today }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Maximum Retries</span>
+            <strong>
+                {{ control.scheduler.max_retries }}
+            </strong>
+        </div>
+
+        <div>
+            <span>Retry Delay</span>
+            <strong>
+                {{ control.scheduler.retry_delay_seconds }}
+                seconds
+            </strong>
+        </div>
+    </div>
+
+    {% if control.scheduler.last_run %}
+    <div class="scheduler-last-run">
+        <span>Last Run</span>
+        <strong>
+            {{ control.scheduler.last_run.started_at }}
+            · {{ control.scheduler.last_run.status }}
+        </strong>
+        <small>
+            Duration:
+            {{ control.scheduler.last_run.duration_seconds }}
+            seconds
+        </small>
+    </div>
+    {% else %}
+    <div class="scheduler-last-run">
+        <span>Last Run</span>
+        <strong>No scheduled run recorded yet</strong>
+        <small>
+            The first automatic run will occur at
+            08:10 Kenya time on the next weekday.
+        </small>
+    </div>
+    {% endif %}
+</section>
+
+
+
+<section class="panel scheduler-monitor-panel">
+    <div class="panel-heading">
+        <div>
+            <span class="section-label">
+                Automation Monitoring
+            </span>
+            <h2>Scheduler Mission Log</h2>
+        </div>
+
+        {% if control.scheduler.last_run %}
+        <span class="scheduler-result-badge scheduler-result-{{ control.scheduler.last_run.status|lower }}">
+            {{ control.scheduler.last_run.status }}
+        </span>
+        {% else %}
+        <span class="scheduler-result-badge scheduler-result-ready">
+            READY
+        </span>
+        {% endif %}
+    </div>
+
+    {% if control.scheduler.last_run %}
+
+    {% set last = control.scheduler.last_run %}
+    {% set details = last.details|default({}) %}
+    {% set steps = details.steps|default([]) %}
+
+    <div class="scheduler-run-summary">
+
+        <article>
+            <span>Started</span>
+            <strong>{{ last.started_at }}</strong>
+        </article>
+
+        <article>
+            <span>Finished</span>
+            <strong>
+                {{ last.finished_at or "Still running" }}
+            </strong>
+        </article>
+
+        <article>
+            <span>Duration</span>
+            <strong>
+                {{ last.duration_seconds }} seconds
+            </strong>
+        </article>
+
+        <article>
+            <span>Attempt</span>
+            <strong>{{ last.attempt }}</strong>
+        </article>
+
+    </div>
+
+    <div class="scheduler-step-grid">
+
+        {% for step in steps %}
+        <article class="scheduler-step-card {% if step.success %}step-success{% else %}step-failed{% endif %}">
+
+            <div>
+                <span>
+                    {% if step.task == "market_update" %}
+                        Market Update
+                    {% elif step.task == "ai_scan" %}
+                        AI Scan, Learning and Telegram
+                    {% elif step.task == "pdf_generation" %}
+                        PDF Generation
+                    {% else %}
+                        {{ step.task }}
+                    {% endif %}
+                </span>
+
+                <strong>
+                    {% if step.success %}
+                        SUCCESS
+                    {% else %}
+                        FAILED
+                    {% endif %}
+                </strong>
+            </div>
+
+            {% if step.returncode is defined %}
+            <small>
+                Return code: {{ step.returncode }}
+            </small>
+            {% endif %}
+
+            {% if step.error %}
+            <small class="scheduler-step-error">
+                {{ step.error }}
+            </small>
+            {% endif %}
+
+        </article>
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+
+    <div class="scheduler-empty-state">
+        <strong>No scheduler run recorded yet</strong>
+        <p>
+            The first automatic cycle will run at
+            08:10 Kenya time on the next weekday.
+        </p>
+    </div>
+
+    {% endif %}
+
+    <div class="scheduler-history-heading">
+        <div>
+            <span class="section-label">
+                Recent Activity
+            </span>
+            <h3>Scheduler History</h3>
+        </div>
+    </div>
+
+    <div class="table-wrapper scheduler-history-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Kenya Date</th>
+                    <th>Started</th>
+                    <th>Status</th>
+                    <th>Attempt</th>
+                    <th>Duration</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for run in control.scheduler.recent_runs[:10] %}
+                <tr>
+                    <td>{{ run.kenya_date }}</td>
+
+                    <td>{{ run.started_at }}</td>
+
+                    <td>
+                        <span class="scheduler-history-status scheduler-history-{{ run.status|lower }}">
+                            {{ run.status }}
+                        </span>
+                    </td>
+
+                    <td>{{ run.attempt }}</td>
+
+                    <td>
+                        {{ run.duration_seconds }} seconds
+                    </td>
+
+                    <td>
+                        {{ run.message or "No message" }}
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="6">
+                        No scheduler history is available yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+
+<section class="control-refresh-panel">
+        <div>
+            <span class="section-label">
+                Live Monitoring
+            </span>
+
+            <h2>Last refreshed</h2>
+
+            <p id="control-generated-at">
+                {{ control.generated_at }}
+            </p>
+        </div>
+
+        <button
+            id="refresh-control-center"
+            type="button">
+            Refresh Status
+        </button>
+    </section>
+
+</main>
+
+<footer class="app-footer">
+    <strong>MIP PRO</strong>
+    <span>Enterprise Control Center</span>
+    <span>Version 11.6.2</span>
+    <span>Powered by MIP Inc.</span>
+</footer>
+
+<script
+    src="{{ url_for('static', filename='js/control_center.js') }}">
+</script>
+
+</body>
+</html>

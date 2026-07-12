@@ -34,7 +34,7 @@ def build_telegram_report(report):
     top = report["top_pick"]
 
     if not top:
-        return "NSE Signal Bot\nNo opportunities found."
+        return "MIP PRO\nNo opportunities found."
 
     return f"""
 📊 NSE Daily AI Market Report
@@ -66,7 +66,7 @@ Suggested Position:
 Generated:
 {report['generated_at']}
 
-NSE Signal Bot V11.3
+MIP PRO
 """.strip()
 
 

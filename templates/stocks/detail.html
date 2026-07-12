@@ -2,14 +2,27 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{{ analysis.symbol }} — NSE Signal Bot V11.2</title>
+    <title>{{ analysis.symbol if analysis else symbol }} — NSE Signal Bot V11.2</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+{% if error %}
+<div style="
+    margin: 20px;
+    padding: 14px 18px;
+    border: 1px solid #d8b24a;
+    border-radius: 10px;
+    background: #fff8df;
+    color: #6f5711;
+">
+    {{ error }}
+</div>
+{% endif %}
+
 
 <div class="hero">
-    <h1>{{ analysis.symbol }} — {{ analysis.name }}</h1>
+    <h1>{{ analysis.symbol if analysis else symbol }} — {{ analysis.name }}</h1>
     <p>{{ analysis.sector }} | NSE Signal Bot V11.2 Professional</p>
     <a class="button" href="/">Back to Dashboard</a>
 </div>

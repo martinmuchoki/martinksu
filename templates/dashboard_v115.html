@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <title>MIP PRO — Market Intelligence Platform</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/v115.css') }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+
+<header class="app-header">
+    <div class="brand-area">
+
+        {% if logo_available %}
+        <img
+            class="brand-logo"
+            src="{{ url_for('static', filename='images/mip_pro_logo.png') }}"
+            alt="MIP PRO">
+        {% else %}
+        <div class="text-logo">
+            <span class="mip">MIP</span>
+            <span class="pro">PRO</span>
+        </div>
+        {% endif %}
+
+        <div class="brand-copy">
+            <h1>Market Intelligence Platform</h1>
+            <p>Intelligence. Insights. Impact.</p>
+        </div>
+    </div>
+
+    <nav class="header-nav">
+        <a href="/">Dashboard</a>
+        <a href="/screener">Screener</a>
+        <a href="/download_report">Reports</a>
+        <a href="/about">About</a>
+
+<a href="/control-center">Control Center</a>
+        <a href="/logout">Logout</a>
+    </nav>
+</header>
+
+<section class="status-strip">
+
+    <div>
+        <span>System</span>
+        <strong class="status-live">● Online</strong>
+    </div>
+
+    <div>
+        <span>Market</span>
+        <strong>{{ market.market_status }}</strong>
+    </div>
+
+    <div>
+        <span>Provider</span>
+        <strong>{{ market.provider|default('MyStocks Africa') }}</strong>
+    </div>
+
+    <div>
+        <span>Regime</span>
+        <strong>{{ regime.regime|default('Collecting Data') }}</strong>
+    </div>
+
+    <div>
+        <span>Updated</span>
+        <strong>{{ market.generated_at|default(now) }}</strong>
+    </div>
+
+</section>
+
+<main class="page-shell">
+
+<section class="kpi-grid">
+
+    <article class="kpi-card green">
+        <span class="kpi-label">Market Status</span>
+        <strong>{{ market.market_status }}</strong>
+        <small>
+            Average change:
+            <span class="{% if market.average_change >= 0 %}positive{% else %}negative{% endif %}">
+                {{ market.average_change }}%
+            </span>
+        </small>
+    </article>
+
+    <article class="kpi-card gold">
+        <span class="kpi-label">AI Confidence</span>
+        <strong>{{ committee.confidence }}%</strong>
+        <small>{{ committee.final_decision }}</small>
+    </article>
+
+    <article class="kpi-card black">
+        <span class="kpi-label">Market Regime</span>
+        <strong class="compact">
+            {{ regime.regime|default('Collecting Data') }}
+        </strong>
+        <small>
+            Confidence:
+            {{ regime.confidence_pct|default(0) }}%
+        </small>
+    </article>
+
+    <article class="kpi-card green">
+        <span class="kpi-label">Portfolio Value</span>
+        <strong>
+            KSh {{ "{:,.2f}".format(portfolio.total_value) }}
+        </strong>
+        <small>
+            Return:
+            <span class="{% if portfolio.pnl_pct >= 0 %}positive{% else %}negative{% endif %}">
+                {{ portfolio.pnl_pct }}%
+            </span>
+        </small>
+    </article>
+
+    <article class="kpi-card gold">
+        <span class="kpi-label">Top Opportunity</span>
+
+        {% if screener %}
+        <strong>{{ screener[0].symbol }}</strong>
+        <small>
+            {{ screener[0].decision }}
+            · {{ screener[0].confidence }}%
+        </small>
+        {% else %}
+        <strong>No Signal</strong>
+        <small>Waiting for analysis</small>
+        {% endif %}
+    </article>
+
+    <article class="kpi-card red">
+        <span class="kpi-label">Institutional Risk</span>
+        <strong class="compact">
+            {{ risk_metrics.market_risk_level|default('Collecting Data') }}
+        </strong>
+        <small>
+            VaR 95%:
+            {{ risk_metrics.average_var_95_pct|default(0) }}%
+        </small>
+    </article>
+
+</section>
+
+
+<section class="panel rc2-chart-section">
+
+    <div class="panel-heading">
+        <div>
+            <span class="section-label">
+                Interactive Market Intelligence
+            </span>
+
+            <h2>Market and Portfolio Charts</h2>
+        </div>
+
+        <div class="chart-symbol-control">
+            <label for="chart-symbol">
+                Stock
+            </label>
+
+            <select id="chart-symbol">
+                {% for stock in market.stocks %}
+                <option
+                    value="{{ stock.symbol }}"
+                    {% if stock.symbol == 'SCOM' %}selected{% endif %}>
+                    {{ stock.symbol }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+
+        <article class="chart-card">
+            <div class="chart-card-heading">
+                <h3 id="market-chart-title">
+                    SCOM Price History
+                </h3>
+
+                <span>Historical close</span>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="market-history-chart"></canvas>
+            </div>
+        </article>
+
+        <article class="chart-card">
+            <div class="chart-card-heading">
+                <h3>Portfolio Value</h3>
+                <span>Historical valuation</span>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="portfolio-history-chart"></canvas>
+            </div>
+        </article>
+
+        <article class="chart-card">
+            <div class="chart-card-heading">
+                <h3>AI Confidence</h3>
+                <span>Recommendation confidence trend</span>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="ai-confidence-chart"></canvas>
+            </div>
+        </article>
+
+        <article class="chart-card">
+            <div class="chart-card-heading">
+                <h3>Sector Rotation</h3>
+                <span>Average sector movement</span>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="sector-rotation-chart"></canvas>
+            </div>
+        </article>
+
+    </div>
+
+</section>
+
+<section class="content-grid volume-leaders-section">
+
+    
+
+    <article class="panel">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">
+                    Volume Intelligence
+                </span>
+
+                <h2>Volume Leaders</h2>
+            </div>
+        </div>
+
+        <div
+            id="volume-leaders"
+            class="leader-list">
+        </div>
+    </article>
+
+</section>
+
+
+<section class="panel enterprise-learning-panel">
+
+    <div class="panel-heading">
+        <div>
+            <span class="section-label">
+                Enterprise Intelligence
+            </span>
+
+            <h2>AI Learning Engine</h2>
+        </div>
+
+        <span class="learning-status-badge">
+            {{ learning.status|default('COLLECTING DATA') }}
+        </span>
+    </div>
+
+    <div class="learning-metric-grid">
+
+        <article>
+            <span>Learning Score</span>
+
+            <strong>
+                {{ learning.learning_score|default(0) }}%
+            </strong>
+
+            <small>
+                Adaptive intelligence readiness
+            </small>
+        </article>
+
+        <article>
+            <span>Historical Accuracy</span>
+
+            <strong>
+                {{ learning.accuracy|default(0) }}%
+            </strong>
+
+            <small>
+                {{ learning.successful|default(0) }}
+                successful of
+                {{ learning.evaluations|default(0) }}
+                evaluations
+            </small>
+        </article>
+
+        <article>
+            <span>Average Return</span>
+
+            <strong class="{% if learning.average_return|default(0) >= 0 %}positive{% else %}negative{% endif %}">
+                {{ learning.average_return|default(0) }}%
+            </strong>
+
+            <small>
+                Across evaluated recommendations
+            </small>
+        </article>
+
+        <article>
+            <span>Confidence Adjustment</span>
+
+            <strong class="{% if learning.confidence_adjustment|default(0) >= 0 %}positive{% else %}negative{% endif %}">
+                {{ learning.confidence_adjustment|default(0) }}
+            </strong>
+
+            <small>
+                Conservative adaptive points
+            </small>
+        </article>
+
+    </div>
+
+    <div class="learning-progress-row">
+
+        <div>
+            <span>Learning history progress</span>
+
+            <strong>
+                {{ learning.evaluations|default(0) }}
+                /
+                {{ learning.minimum_active_sample|default(20) }}
+            </strong>
+        </div>
+
+        <div class="learning-progress">
+            <div
+                class="learning-progress-fill"
+                style="width: {{ learning.sample_progress_pct|default(0) }}%">
+            </div>
+        </div>
+
+    </div>
+
+    <div class="learning-insight-grid">
+
+        <div>
+            <span>Best Decision</span>
+
+            <strong>
+                {% if learning.best_decision %}
+                    {{ learning.best_decision.decision }}
+                {% else %}
+                    Collecting data
+                {% endif %}
+            </strong>
+        </div>
+
+        <div>
+            <span>Best Horizon</span>
+
+            <strong>
+                {% if learning.best_horizon %}
+                    {{ learning.best_horizon.horizon_days }}
+                    trading days
+                {% else %}
+                    Collecting data
+                {% endif %}
+            </strong>
+        </div>
+
+        <div>
+            <span>Best Sector</span>
+
+            <strong>
+                {% if learning.best_sector %}
+                    {{ learning.best_sector.sector }}
+                {% else %}
+                    Collecting data
+                {% endif %}
+            </strong>
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="content-grid two-columns">
+
+    <article class="panel investment-committee-panel">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">AI Intelligence</span>
+                <h2>Investment Committee</h2>
+            </div>
+
+            <span class="decision-badge">
+                {{ committee.final_decision }}
+                · {{ committee.confidence }}%
+            </span>
+        </div>
+
+        <p class="panel-summary">
+            {{ committee.summary }}
+        </p>
+
+        <div class="agent-grid">
+            {% for agent in committee.agents[:6] %}
+            <div class="agent-card">
+                <span>{{ agent.role }}</span>
+                <strong>{{ agent.name }}</strong>
+                <b>{{ agent.decision }}</b>
+                <small>{{ agent.confidence }}% confidence</small>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+
+<article class="panel market-breadth-panel">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">
+                    Market Breadth
+                </span>
+
+                <h2>Advancers and Decliners</h2>
+            </div>
+        </div>
+
+        <div class="breadth-grid">
+
+            <div class="breadth-card breadth-positive">
+                <span>Advancers</span>
+                <strong id="breadth-advancers">0</strong>
+            </div>
+
+            <div class="breadth-card breadth-negative">
+                <span>Decliners</span>
+                <strong id="breadth-decliners">0</strong>
+            </div>
+
+            <div class="breadth-card breadth-neutral">
+                <span>Unchanged</span>
+                <strong id="breadth-unchanged">0</strong>
+            </div>
+
+            <div class="breadth-card breadth-ratio">
+                <span>Advance/Decline</span>
+                <strong id="breadth-ratio">0</strong>
+            </div>
+
+        </div>
+
+        <div class="breadth-bar">
+            <div
+                id="breadth-advance-bar"
+                class="breadth-bar-positive">
+            </div>
+
+            <div
+                id="breadth-decline-bar"
+                class="breadth-bar-negative">
+            </div>
+        </div>
+    </article>
+
+    
+<section class="intelligence-selector-panel">
+    <div>
+        <span class="section-label">
+            NSE Intelligence View
+        </span>
+
+        <h2>Choose Market Analysis</h2>
+    </div>
+
+    <label class="intelligence-selector-label">
+        Select view
+
+        <select id="intelligence-view-selector">
+            <option value="predictions">
+                All NSE Predictions
+            </option>
+
+            <option value="screener">
+                AI Stock Screener
+            </option>
+        </select>
+    </label>
+</section>
+
+<article class="panel intelligence-switch-panel" id="predictions-view">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">Forward Intelligence</span>
+                <h2>All NSE Predictions</h2>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Expected Return</th>
+                        <th>Probability</th>
+                        <th>Target</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in (predictions|default([], true))[:16] %}
+                    <tr>
+                        <td>
+                            <a href="/stocks/{{ item.symbol }}">
+                                {{ item.symbol }}
+                            </a>
+                        </td>
+
+                        <td class="{% if item.expected_return_pct >= 0 %}positive{% else %}negative{% endif %}">
+                            {{ item.expected_return_pct|default(0) }}%
+                        </td>
+
+                        <td>
+                            {{ item.probability_success_pct|default(0) }}%
+                        </td>
+
+                        <td>
+                            KSh {{ item.target_price|default(0) }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">
+                            Prediction data is currently unavailable.
+                            The system will retry during the next market scan.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+</section>
+
+<section class="panel intelligence-switch-panel" id="screener-view">
+    <div class="panel-heading">
+        <div>
+            <span class="section-label">Opportunity Ranking</span>
+            <h2>AI Stock Screener</h2>
+        </div>
+
+        <a class="panel-link" href="/screener">
+            View full screener
+        </a>
+    </div>
+
+<div class="screener-filter-bar">
+
+    <label>
+        Search
+        <input
+            id="screener-search"
+            type="search"
+            placeholder="Symbol or company">
+    </label>
+
+    <label>
+        Decision
+        <select id="screener-decision-filter">
+            <option value="">All decisions</option>
+            <option value="STRONG BUY">Strong Buy</option>
+            <option value="BUY">Buy</option>
+            <option value="HOLD">Hold</option>
+            <option value="WATCH">Watch</option>
+            <option value="SELL">Sell</option>
+        </select>
+    </label>
+
+    <label>
+        Risk
+        <select id="screener-risk-filter">
+            <option value="">All risk levels</option>
+            <option value="LOW RISK">Low Risk</option>
+            <option value="MODERATE RISK">Moderate Risk</option>
+            <option value="HIGH RISK">High Risk</option>
+        </select>
+    </label>
+
+    <label>
+        Sector
+        <select id="screener-sector-filter">
+            <option value="">All sectors</option>
+
+            {% set sectors = [] %}
+
+            {% for stock in screener[:16] %}
+                {% if stock.sector not in sectors %}
+                    {% set _ = sectors.append(stock.sector) %}
+                {% endif %}
+            {% endfor %}
+
+            {% for sector in sectors|sort %}
+            <option value="{{ sector }}">
+                {{ sector }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>
+        Minimum confidence
+        <input
+            id="screener-confidence-filter"
+            type="number"
+            min="0"
+            max="100"
+            value="0">
+    </label>
+
+    <button
+        id="screener-reset"
+        type="button"
+        class="filter-reset-button">
+        Reset
+    </button>
+
+</div>
+
+<p class="filter-result-count">
+    Showing
+    <strong id="screener-visible-count">
+        {{ screener[:15]|length }}
+    </strong>
+    results
+</p>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Symbol</th>
+                    <th>Company</th>
+                    <th>Price</th>
+                    <th>Decision</th>
+                    <th>Confidence</th>
+                    <th>Risk</th>
+                    <th>Position</th>
+                </tr>
+            </thead>
+
+            <tbody id="screener-table-body">
+                {% for stock in screener[:16] %}
+                <tr
+                    class="screener-row"
+                    data-symbol="{{ stock.symbol|lower }}"
+                    data-company="{{ stock.name|lower }}"
+                    data-decision="{{ stock.decision }}"
+                    data-risk="{{ stock.risk }}"
+                    data-sector="{{ stock.sector }}"
+                    data-confidence="{{ stock.confidence }}">
+                    <td class="screener-rank">{{ loop.index }}</td>
+
+                    <td>
+                        <a href="/stocks/{{ stock.symbol }}">
+                            {{ stock.symbol }}
+                        </a>
+                    </td>
+
+                    <td>{{ stock.name }}</td>
+
+                    <td>
+                        KSh {{ "{:,.2f}".format(stock.price) }}
+                    </td>
+
+                    <td>
+                        <span class="signal signal-{{ stock.decision|lower|replace(' ', '-') }}">
+                            {{ stock.decision }}
+                        </span>
+                    </td>
+
+                    <td>{{ stock.confidence }}%</td>
+                    <td>{{ stock.risk }}</td>
+                    <td>{{ stock.position }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="content-grid three-columns">
+
+    <article class="panel">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">Capital Allocation</span>
+                <h2>Portfolio Optimizer</h2>
+            </div>
+        </div>
+
+        <div class="metric-list">
+            <div>
+                <span>Recommended positions</span>
+                <strong>{{ optimized_portfolio.position_count }}</strong>
+            </div>
+
+            <div>
+                <span>Invested allocation</span>
+                <strong>
+                    {{ optimized_portfolio.invested_percentage }}%
+                </strong>
+            </div>
+
+            <div>
+                <span>Cash reserve</span>
+                <strong>
+                    {{ optimized_portfolio.cash_percentage }}%
+                </strong>
+            </div>
+
+            <div>
+                <span>Risk</span>
+                <strong>{{ optimized_portfolio.risk_level }}</strong>
+            </div>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">Risk Analytics</span>
+                <h2>Institutional Risk</h2>
+            </div>
+        </div>
+
+        <div class="metric-list">
+            <div>
+                <span>Volatility</span>
+                <strong>
+                    {{ risk_metrics.average_volatility_pct }}%
+                </strong>
+            </div>
+
+            <div>
+                <span>Sharpe ratio</span>
+                <strong>
+                    {{ risk_metrics.average_sharpe_ratio }}
+                </strong>
+            </div>
+
+            <div>
+                <span>Sortino ratio</span>
+                <strong>
+                    {{ risk_metrics.average_sortino_ratio }}
+                </strong>
+            </div>
+
+            <div>
+                <span>Worst drawdown</span>
+                <strong class="negative">
+                    {{ risk_metrics.worst_drawdown_pct }}%
+                </strong>
+            </div>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">Sector Intelligence</span>
+                <h2>Sector Rotation</h2>
+            </div>
+        </div>
+
+        {% if sector_rotation.strongest_sector %}
+        <div class="sector-highlight">
+            <span>Strongest sector</span>
+            <strong>
+                {{ sector_rotation.strongest_sector.sector }}
+            </strong>
+            <small>
+                {{ sector_rotation.strongest_sector.average_change_pct }}%
+            </small>
+        </div>
+        {% endif %}
+
+        <div class="sector-list">
+            {% for item in sector_rotation.sectors[:5] %}
+            <div>
+                <span>{{ item.sector }}</span>
+
+                <strong class="{% if item.average_change_pct >= 0 %}positive{% else %}negative{% endif %}">
+                    {{ item.average_change_pct }}%
+                </strong>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+
+</section>
+
+<section class="content-grid two-columns">
+
+    <article class="panel">
+        <div class="panel-heading">
+            <div>
+                <span class="section-label">Performance</span>
+                <h2>AI Performance Analytics</h2>
+            </div>
+        </div>
+
+        <div class="metric-list">
+            <div>
+                <span>Recommendations</span>
+                <strong>{{ performance.recommendations }}</strong>
+            </div>
+
+            <div>
+                <span>Evaluations</span>
+                <strong>{{ performance.evaluations }}</strong>
+            </div>
+
+            <div>
+                <span>Accuracy</span>
+                <strong>{{ performance.accuracy }}%</strong>
+            </div>
+
+            <div>
+                <span>Average return</span>
+                <strong class="{% if performance.average_return >= 0 %}positive{% else %}negative{% endif %}">
+                    {{ performance.average_return }}%
+                </strong>
+            </div>
+        </div>
+    </article>
+
+    <article class="panel report-card">
+        <div>
+            <span class="section-label">Reporting</span>
+            <h2>Daily Intelligence Report</h2>
+
+            <p>
+                Download the latest executive market intelligence
+                report in PDF format.
+            </p>
+        </div>
+
+        <a class="primary-button" href="/download_report">
+            Download PDF Report
+        </a>
+    </article>
+
+</section>
+
+</main>
+
+<footer class="app-footer">
+    <strong>MIP PRO</strong>
+    <span>Professional Intelligence Suite</span>
+    <span>Version 11.6</span>
+    <span>Powered by MIP Inc.</span>
+    <span>AI Investment Intelligence for Africa</span>
+</footer>
+
+
+<script
+    src="{{ url_for('static', filename='js/v115_charts.js') }}">
+</script>
+
+</body>
+</html>

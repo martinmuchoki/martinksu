@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <title>About MIP PRO</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<main class="about-shell">
+    <section class="about-card">
+
+        <img
+            class="about-logo-image"
+            src="{{ url_for('static', filename='images/mip_pro_logo.png') }}"
+            alt="MIP PRO">
+
+        <h1>Market Intelligence Platform</h1>
+        <h2>Professional Intelligence Suite</h2>
+
+        <div class="about-grid">
+            <div>
+                <span>Version</span>
+                <strong>{{ version }}</strong>
+            </div>
+
+            <div>
+                <span>Market coverage</span>
+                <strong>Nairobi Securities Exchange</strong>
+            </div>
+
+            <div>
+                <span>Data provider</span>
+                <strong>MyStocks Africa</strong>
+            </div>
+
+            <div>
+                <span>Technology</span>
+                <strong>Python · Flask · SQLite</strong>
+            </div>
+        </div>
+
+        <p>
+            MIP PRO combines live market data, predictive analytics,
+            portfolio intelligence, institutional risk analysis,
+            sector rotation and automated reporting.
+        </p>
+
+        <p class="recommendation-box">
+            This platform is intended for analytical and educational
+            purposes. It does not provide guaranteed investment outcomes.
+        </p>
+
+        <div class="about-actions">
+            <a class="button" href="/">Dashboard</a>
+            <a class="button secondary-button" href="/logout">Logout</a>
+        </div>
+
+    </section>
+</main>
+
+</body>
+</html>
