@@ -1538,3 +1538,218 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==================================================
+   MIP PRO V11.6.3 Android PWA
+   Mobile and standalone layout
+   ================================================== */
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+}
+
+button,
+.button,
+a.button,
+input,
+select {
+    min-height: 44px;
+}
+
+.table-wrapper {
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (display-mode: standalone) {
+    body {
+        overscroll-behavior-y: contain;
+    }
+
+    .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+}
+
+@media (max-width: 760px) {
+    .app-header,
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+        padding: 14px 16px;
+    }
+
+    .brand-area,
+    .mip-header-brand {
+        width: 100%;
+        align-items: center;
+    }
+
+    .brand-logo,
+    .mip-header-logo {
+        max-width: 74px;
+        height: auto;
+    }
+
+    .header-actions,
+    .mip-header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .header-actions a,
+    .mip-header-actions a,
+    .system-online-badge {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    main,
+    .dashboard-shell,
+    .main-shell {
+        width: min(100% - 18px, 1500px);
+        padding-top: 14px;
+    }
+
+    .content-grid,
+    .two-columns,
+    .three-columns,
+    .four-columns {
+        grid-template-columns: 1fr !important;
+    }
+
+    .panel {
+        padding: 16px;
+        border-radius: 13px;
+    }
+
+    .panel-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .decision-badge,
+    .learning-status-badge,
+    .scheduler-status-badge {
+        align-self: flex-start;
+    }
+
+    .metric-grid,
+    .learning-metric-grid,
+    .learning-insight-grid,
+    .agent-grid,
+    .breadth-grid,
+    .summary-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .intelligence-selector-panel {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .intelligence-selector-label,
+    .intelligence-selector-label select {
+        width: 100%;
+    }
+
+    .screener-filter-bar {
+        grid-template-columns: 1fr !important;
+    }
+
+    .screener-filter-bar label,
+    .screener-filter-bar input,
+    .screener-filter-bar select {
+        width: 100%;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        border-radius: 10px;
+    }
+
+    table {
+        min-width: 680px;
+    }
+
+    th,
+    td {
+        padding: 11px 10px;
+        white-space: nowrap;
+    }
+
+    .leader-list {
+        grid-template-columns: 1fr !important;
+    }
+
+    .app-footer {
+        align-items: center;
+        flex-direction: column;
+        gap: 5px;
+        padding: 18px 14px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 420px) {
+    .header-actions,
+    .mip-header-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .brand-copy strong,
+    .mip-header-copy h1 {
+        font-size: 22px;
+    }
+
+    .panel h2 {
+        font-size: 20px;
+    }
+
+    .learning-metric-grid strong,
+    .control-card strong {
+        font-size: 22px;
+    }
+}
+
+/* MIP PRO V11.6.3 PWA Install Button */
+
+.install-pwa-button {
+    min-height: 42px;
+    padding: 9px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 9px;
+    background: #b48c25;
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.install-pwa-button:hover {
+    filter: brightness(1.06);
+}
+
+.install-pwa-button[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 760px) {
+    .install-pwa-button {
+        width: 100%;
+    }
+}

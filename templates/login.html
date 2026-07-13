@@ -11,6 +11,25 @@
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}">
+
+<link rel="manifest" href="/manifest.webmanifest">
+
+<meta name="theme-color" content="#08783f">
+
+<meta name="mobile-web-app-capable" content="yes">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<meta name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent">
+
+<link rel="icon"
+      sizes="192x192"
+      href="/static/pwa/icons/mip-pro-192.png">
+
+<link rel="apple-touch-icon"
+      href="/static/pwa/icons/mip-pro-192.png">
+
 </head>
 
 <body class="login-page">
@@ -78,6 +97,9 @@
 
     </section>
 </main>
+
+
+<script src="/static/js/pwa.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,67 @@
+{
+  "id": "/",
+  "name": "MIP PRO — Market Intelligence Platform",
+  "short_name": "MIP PRO",
+  "description": "AI-powered investment intelligence for African markets.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f3f6f4",
+  "theme_color": "#08783f",
+  "categories": [
+    "finance",
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/static/pwa/icons/mip-pro-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/pwa/icons/mip-pro-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/pwa/icons/mip-pro-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/pwa/icons/mip-pro-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/?source=pwa-shortcut",
+      "icons": [
+        {
+          "src": "/static/pwa/icons/mip-pro-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Control Center",
+      "short_name": "Control",
+      "url": "/control-center",
+      "icons": [
+        {
+          "src": "/static/pwa/icons/mip-pro-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

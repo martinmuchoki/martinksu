@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <meta name="theme-color" content="#08783f">
+
+    <title>MIP PRO — Offline</title>
+
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: #f3f6f4;
+            color: #17221c;
+            font-family: Arial, sans-serif;
+        }
+
+        .offline-card {
+            width: min(420px, 100%);
+            padding: 32px;
+            border-radius: 18px;
+            background: white;
+            box-shadow: 0 16px 50px rgba(0, 0, 0, 0.12);
+            text-align: center;
+        }
+
+        img {
+            width: 110px;
+            height: 110px;
+            object-fit: contain;
+        }
+
+        h1 {
+            margin: 18px 0 10px;
+        }
+
+        p {
+            color: #647068;
+            line-height: 1.6;
+        }
+
+        button {
+            margin-top: 12px;
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 9px;
+            background: #08783f;
+            color: white;
+            font: inherit;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="offline-card">
+        <img
+            src="/static/pwa/icons/mip-pro-192.png"
+            alt="MIP PRO">
+
+        <h1>You are offline</h1>
+
+        <p>
+            MIP PRO cannot reach the server.
+            Check your internet connection and try again.
+        </p>
+
+        <button
+            type="button"
+            onclick="window.location.reload()">
+            Try Again
+        </button>
+    </main>
+</body>
+</html>

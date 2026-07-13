@@ -14,6 +14,25 @@
         href="{{ url_for('static', filename='css/v115.css') }}">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+<link rel="manifest" href="/manifest.webmanifest">
+
+<meta name="theme-color" content="#08783f">
+
+<meta name="mobile-web-app-capable" content="yes">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<meta name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent">
+
+<link rel="icon"
+      sizes="192x192"
+      href="/static/pwa/icons/mip-pro-192.png">
+
+<link rel="apple-touch-icon"
+      href="/static/pwa/icons/mip-pro-192.png">
+
 </head>
 
 <body>
@@ -46,6 +65,16 @@
         <a href="/about">About</a>
 
 <a href="/control-center">Control Center</a>
+
+
+<button
+    id="install-mip-pro"
+    class="install-pwa-button"
+    type="button"
+    hidden>
+    Install MIP PRO
+</button>
+
         <a href="/logout">Logout</a>
     </nav>
 </header>
@@ -878,6 +907,12 @@
 <script
     src="{{ url_for('static', filename='js/v115_charts.js') }}">
 </script>
+
+
+<script src="/static/js/pwa.js"></script>
+
+
+<script src="/static/js/pwa-install.js"></script>
 
 </body>
 </html>

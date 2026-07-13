@@ -5,7 +5,7 @@ from functools import wraps
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash
 
-from flask import Flask, render_template, jsonify, request, redirect, send_file, session, url_for
+from flask import Flask, render_template, jsonify, request, redirect, send_file, session, url_for, send_from_directory
 from datetime import datetime
 from services.dashboard_engine import build_dashboard
 from services.ai_committee import run_committee
@@ -62,6 +62,9 @@ PUBLIC_ENDPOINTS = {
     "login",
     "health",
     "static",
+    "pwa_manifest",
+    "pwa_service_worker",
+    "pwa_offline",
 }
 
 
@@ -157,7 +160,7 @@ def about():
         version="11.5",
     )
 
-VERSION = "11.6.2 Enterprise Scheduler"
+VERSION = "11.6.3 Android PWA"
 
 @app.route("/")
 def dashboard():
@@ -656,6 +659,36 @@ def portfolio_sell():
 
     except Exception as exc:
         return redirect(f"/?portfolio_error={str(exc)}")
+
+
+@app.route("/manifest.webmanifest")
+def pwa_manifest():
+    response = send_from_directory(
+        "static/pwa",
+        "manifest.webmanifest",
+        mimetype="application/manifest+json",
+    )
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@app.route("/service-worker.js")
+def pwa_service_worker():
+    response = send_from_directory(
+        "static/pwa",
+        "service-worker.js",
+        mimetype="application/javascript",
+    )
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
+
+
+@app.route("/offline")
+def pwa_offline():
+    return render_template("offline.html")
+
+
 
 if __name__ == "__main__":
     app.run(
