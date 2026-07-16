@@ -40,3 +40,14 @@ data/*.html
 # Local audit and development tests
 audit_*.sh
 test_*.py
+
+# Runtime databases
+database/*.db
+data/*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local development backups
+backups/dev/
+*.bak_*

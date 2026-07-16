@@ -1,4 +1,4 @@
-const CACHE_NAME = "mip-pro-v11-6-3";
+const CACHE_NAME = "mip-pro-v11-6-3-volume-fix-1";
 
 const STATIC_ASSETS = [
     "/offline",
@@ -7,6 +7,8 @@ const STATIC_ASSETS = [
     "/static/css/control_center.css",
     "/static/js/v115_charts.js",
     "/static/js/control_center.js",
+    "/static/js/pwa.js",
+    "/static/js/pwa-install.js",
     "/static/pwa/icons/mip-pro-192.png",
     "/static/pwa/icons/mip-pro-512.png"
 ];
@@ -37,8 +39,29 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
     const request = event.request;
+    const url = new URL(request.url);
 
     if (request.method !== "GET") {
+        return;
+    }
+
+    /*
+     * Never cache APIs, login sessions, dashboard pages,
+     * stock pages, or Control Center data.
+     */
+    if (
+        url.pathname.startsWith("/api/") ||
+        url.pathname === "/" ||
+        url.pathname.startsWith("/stocks/") ||
+        url.pathname.startsWith("/control-center") ||
+        url.pathname.startsWith("/login") ||
+        url.pathname.startsWith("/logout")
+    ) {
+        event.respondWith(
+            fetch(request, {
+                cache: "no-store"
+            })
+        );
         return;
     }
 
@@ -51,21 +74,36 @@ self.addEventListener("fetch", event => {
         return;
     }
 
-    event.respondWith(
-        caches.match(request).then(cached => {
-            if (cached) {
-                return cached;
-            }
+    /*
+     * Cache only static resources.
+     */
+    if (url.pathname.startsWith("/static/")) {
+        event.respondWith(
+            caches.match(request).then(cached => {
+                if (cached) {
+                    return cached;
+                }
 
-            return fetch(request).then(response => {
-                const copy = response.clone();
+                return fetch(request).then(response => {
+                    if (
+                        !response ||
+                        response.status !== 200
+                    ) {
+                        return response;
+                    }
 
-                caches.open(CACHE_NAME).then(cache => {
-                    cache.put(request, copy);
+                    const copy = response.clone();
+
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(request, copy);
+                    });
+
+                    return response;
                 });
+            })
+        );
+        return;
+    }
 
-                return response;
-            });
-        })
-    );
+    event.respondWith(fetch(request));
 });

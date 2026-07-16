@@ -407,3 +407,51 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* MIP PRO V11.6.3 Android Control Center */
+
+@media (display-mode: standalone) {
+    .control-center-page .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+}
+
+@media (max-width: 760px) {
+    .control-center-shell {
+        width: min(100% - 18px, 1500px);
+        padding-top: 14px;
+    }
+
+    .control-summary-grid,
+    .control-grid.two-columns,
+    .health-list,
+    .delivery-list,
+    .scheduler-run-summary,
+    .scheduler-step-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .control-hero,
+    .control-refresh-panel {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 18px;
+    }
+
+    .control-online-badge,
+    #refresh-control-center {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .scheduler-history-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .scheduler-history-table table {
+        min-width: 820px;
+    }
+}

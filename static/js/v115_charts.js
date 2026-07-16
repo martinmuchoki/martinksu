@@ -123,20 +123,50 @@ function createSectorChart(labels, values) {
 }
 
 function updateBreadth(breadth) {
-    const mapping = {
-        "breadth-advancers": breadth.advancers,
-        "breadth-decliners": breadth.decliners,
-        "breadth-unchanged": breadth.unchanged,
-        "breadth-ratio": breadth.advance_decline_ratio,
-    };
-
-    Object.entries(mapping).forEach(([id, value]) => {
+    const updateMetric = (
+        id,
+        value,
+        secondary = ""
+    ) => {
         const element = document.getElementById(id);
 
-        if (element) {
-            element.textContent = value ?? 0;
+        if (!element) {
+            return;
         }
-    });
+
+        element.innerHTML = `
+            ${value ?? 0}
+            ${
+                secondary
+                    ? `<small>${secondary}</small>`
+                    : ""
+            }
+        `;
+    };
+
+    updateMetric(
+        "breadth-advancers",
+        breadth.advancers,
+        `${breadth.advancing_percentage ?? 0}%`
+    );
+
+    updateMetric(
+        "breadth-decliners",
+        breadth.decliners,
+        `${breadth.declining_percentage ?? 0}%`
+    );
+
+    updateMetric(
+        "breadth-unchanged",
+        breadth.unchanged,
+        `${breadth.unchanged_percentage ?? 0}%`
+    );
+
+    updateMetric(
+        "breadth-ratio",
+        breadth.advance_decline_ratio,
+        breadth.breadth_signal || ""
+    );
 
     const positiveBar = document.getElementById(
         "breadth-advance-bar"
@@ -148,12 +178,22 @@ function updateBreadth(breadth) {
 
     if (positiveBar) {
         positiveBar.style.width =
-            `${breadth.advancing_percentage || 0}%`;
+            `${breadth.advancing_percentage ?? 0}%`;
     }
 
     if (negativeBar) {
         negativeBar.style.width =
-            `${breadth.declining_percentage || 0}%`;
+            `${breadth.declining_percentage ?? 0}%`;
+    }
+
+    const marketPulse = document.getElementById(
+        "market-pulse-text"
+    );
+
+    if (marketPulse) {
+        marketPulse.textContent =
+            breadth.market_pulse ||
+            "Market interpretation is currently unavailable.";
     }
 
     const leaderContainer = document.getElementById(
@@ -166,28 +206,153 @@ function updateBreadth(breadth) {
         (breadth.volume_leaders || [])
             .slice(0, 16)
             .forEach((stock, index) => {
-                const row = document.createElement("div");
+                const card = document.createElement("article");
 
-                row.className = "leader-row";
+                const signalClass =
+                    stock.signal_class || "watchlist";
 
-                row.innerHTML = `
-                    <span>${index + 1}. ${stock.symbol}</span>
-                    <strong>${Number(
-                        stock.volume || 0
-                    ).toLocaleString()}</strong>
+                const confidence = Math.max(
+                    0,
+                    Math.min(
+                        100,
+                        Number(
+                            stock.institutional_confidence ?? 0
+                        )
+                    )
+                );
+
+                const reasons = (
+                    stock.institutional_reasons || []
+                )
+                    .slice(0, 3)
+                    .map(reason => `<li>${reason}</li>`)
+                    .join("");
+
+                card.className =
+                    `institutional-volume-card signal-${signalClass}`;
+
+                card.innerHTML = `
+                    <div class="institutional-card-heading">
+                        <div>
+                            <span class="institutional-rank">
+                                #${index + 1}
+                            </span>
+
+                            <h3>${stock.symbol || "-"}</h3>
+                        </div>
+
+                        <span class="institutional-badge">
+                            ${stock.institutional_badge || "⚪"}
+                        </span>
+                    </div>
+
+                    <div class="institutional-metrics">
+                        <div>
+                            <span>Volume</span>
+                            <strong>
+                                ${Number(
+                                    stock.volume ?? 0
+                                ).toLocaleString("en-KE")}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>RVOL</span>
+                            <strong>
+                                ${Number(
+                                    stock.relative_volume ?? 0
+                                ).toFixed(2)}×
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>AI Score</span>
+                            <strong>
+                                ${Number(
+                                    stock.score ?? 0
+                                ).toFixed(0)}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Confidence</span>
+                            <strong>
+                                ${confidence.toFixed(0)}%
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="institutional-confidence-bar">
+                        <div style="width: ${confidence}%"></div>
+                    </div>
+
+                    <strong class="institutional-signal">
+                        ${stock.institutional_badge || "⚪"}
+                        ${stock.institutional_signal || "Watchlist"}
+                    </strong>
+
+                    <ul class="institutional-reasons">
+                        ${reasons}
+                    </ul>
                 `;
 
-                leaderContainer.appendChild(row);
+                leaderContainer.appendChild(card);
             });
     }
 }
 
+
+function setChartLoading(isLoading) {
+    const chartIds = [
+        "market-history-chart",
+        "portfolio-history-chart",
+        "ai-confidence-chart",
+        "sector-rotation-chart",
+    ];
+
+    chartIds.forEach(id => {
+        const canvas = document.getElementById(id);
+
+        if (!canvas || !canvas.parentElement) {
+            return;
+        }
+
+        const parent = canvas.parentElement;
+        parent.classList.add("chart-loading-container");
+
+        let overlay = parent.querySelector(
+            ".chart-loading-overlay"
+        );
+
+        if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.className = "chart-loading-overlay";
+            overlay.innerHTML = `
+                <span class="chart-loading-spinner"></span>
+                <strong>Loading intelligence chart...</strong>
+            `;
+            parent.appendChild(overlay);
+        }
+
+        overlay.hidden = !isLoading;
+        canvas.style.opacity = isLoading ? "0.15" : "1";
+    });
+}
+
 async function loadDashboardCharts(symbol = "SCOM") {
     try {
+        setChartLoading(true);
+
         const response = await fetch(
             `/api/v11.5/dashboard-charts?symbol=${
                 encodeURIComponent(symbol)
-            }`
+            }`,
+            {
+                cache: "no-store",
+                headers: {
+                    "Accept": "application/json"
+                }
+            }
         );
 
         if (!response.ok) {
@@ -244,6 +409,18 @@ async function loadDashboardCharts(symbol = "SCOM") {
             "Unable to load dashboard charts:",
             error
         );
+
+        const pulse = document.getElementById(
+            "market-pulse-text"
+        );
+
+        if (pulse) {
+            pulse.textContent =
+                "Dashboard intelligence could not be refreshed. " +
+                "Please reload the page.";
+        }
+    } finally {
+        setChartLoading(false);
     }
 }
 

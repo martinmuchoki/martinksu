@@ -1753,3 +1753,410 @@ select {
         width: 100%;
     }
 }
+
+/* V11.6.3 Volume Intelligence visibility fix */
+.volume-leaders-section,
+.volume-leaders-section > .panel {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.volume-leaders-section .leader-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 560px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+@media (max-width: 700px) {
+    .volume-leaders-section .leader-list {
+        grid-template-columns: 1fr !important;
+        max-height: 560px !important;
+        overflow-y: auto !important;
+    }
+}
+
+/* ==================================================
+   MIP PRO V11.6.4 Institutional Volume Intelligence
+   ================================================== */
+
+#volume-leaders {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.institutional-volume-card {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-left: 5px solid #7f8a84;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(25, 45, 34, 0.06);
+}
+
+.institutional-volume-card.signal-exceptional {
+    border-left-color: #0b6f3d;
+}
+
+.institutional-volume-card.signal-buying,
+.institutional-volume-card.signal-strong-accumulation {
+    border-left-color: #168a4f;
+}
+
+.institutional-volume-card.signal-accumulation {
+    border-left-color: #c99b1f;
+}
+
+.institutional-volume-card.signal-watchlist {
+    border-left-color: #87938d;
+}
+
+.institutional-volume-card.signal-weak {
+    border-left-color: #b83a3a;
+}
+
+.institutional-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.institutional-card-heading h3 {
+    margin: 3px 0 0;
+    font-size: 22px;
+}
+
+.institutional-rank {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.institutional-badge {
+    font-size: 24px;
+}
+
+.institutional-metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.institutional-metrics > div {
+    padding: 10px;
+    border-radius: 8px;
+    background: #f7faf8;
+}
+
+.institutional-metrics span,
+.institutional-metrics strong {
+    display: block;
+}
+
+.institutional-metrics span {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.institutional-metrics strong {
+    font-size: 16px;
+}
+
+.institutional-confidence-bar {
+    height: 8px;
+    margin: 14px 0 11px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e2e9e5;
+}
+
+.institutional-confidence-bar > div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        #b48c25,
+        #08783f
+    );
+}
+
+.institutional-signal {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.institutional-reasons {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+@media (max-width: 1250px) {
+    #volume-leaders {
+        grid-template-columns:
+            repeat(3, minmax(220px, 1fr));
+    }
+}
+
+@media (max-width: 950px) {
+    #volume-leaders {
+        grid-template-columns:
+            repeat(2, minmax(220px, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    #volume-leaders {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================================================
+   MIP PRO V11.6.4 RC2
+   Enterprise Learning Dashboard
+   ================================================== */
+
+.learning-status-group {
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.learning-status-group small {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.learning-metric-grid-rc2 {
+    grid-template-columns:
+        repeat(3, minmax(170px, 1fr));
+}
+
+.learning-stars {
+    color: #b48c25 !important;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.learning-progress-row-rc2 {
+    margin-top: 18px;
+}
+
+.learning-progress-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 11px;
+}
+
+.learning-progress-heading span,
+.learning-progress-heading strong {
+    display: block;
+}
+
+.learning-progress-heading span {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.learning-progress-percent {
+    color: var(--green);
+    font-size: 24px;
+}
+
+.learning-cycle-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.learning-cycle-meta span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.learning-cycle-meta strong {
+    font-size: 13px;
+}
+
+.learning-insight-grid-rc2 > div {
+    min-height: 96px;
+}
+
+.learning-insight-grid-rc2 small {
+    display: block;
+    margin-top: 5px;
+    color: var(--muted);
+}
+
+.learning-ai-insights {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--green);
+    border-radius: 12px;
+    background: #f8fbf9;
+}
+
+.learning-ai-insights-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.learning-ai-insights-heading h3 {
+    margin: 4px 0 0;
+}
+
+.learning-phase-chip {
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #e8f6ee;
+    color: #08783f;
+    font-size: 11px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.learning-ai-insights ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--muted);
+    line-height: 1.7;
+}
+
+.learning-ai-insights li + li {
+    margin-top: 4px;
+}
+
+.learning-ai-insights strong {
+    color: var(--black);
+}
+
+@media (max-width: 1050px) {
+    .learning-metric-grid-rc2 {
+        grid-template-columns:
+            repeat(2, minmax(170px, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .learning-status-group {
+        align-items: flex-start;
+    }
+
+    .learning-metric-grid-rc2 {
+        grid-template-columns: 1fr;
+    }
+
+    .learning-progress-heading,
+    .learning-cycle-meta,
+    .learning-ai-insights-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* MIP PRO V11.6.4 RC2 Market Breadth Intelligence */
+
+.breadth-card strong small {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.market-pulse-panel {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-left: 5px solid #168a4f;
+    border-radius: 12px;
+    background: #f8fbf9;
+}
+
+.market-pulse-heading {
+    margin-bottom: 10px;
+}
+
+.market-pulse-heading h3 {
+    margin: 4px 0 0;
+}
+
+.market-pulse-panel p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.7;
+}
+
+/* MIP PRO Dashboard Loading Experience */
+
+.chart-loading-container {
+    position: relative;
+    min-height: 260px;
+}
+
+.chart-loading-container canvas {
+    transition: opacity 0.2s ease;
+}
+
+.chart-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--muted);
+    text-align: center;
+}
+
+.chart-loading-overlay[hidden] {
+    display: none !important;
+}
+
+.chart-loading-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #dfe8e3;
+    border-top-color: #08783f;
+    border-radius: 50%;
+    animation: mip-chart-spin 0.8s linear infinite;
+}
+
+@keyframes mip-chart-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

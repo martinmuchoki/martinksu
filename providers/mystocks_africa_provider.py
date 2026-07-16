@@ -16,6 +16,7 @@ class MyStocksAfricaProvider:
 
     CACHE_FILE = Path("data/mystocks_africa_nse.json")
     QUOTES_FILE = Path("data/live_quotes.json")
+    VOLUME_CACHE_FILE = Path("data/last_valid_volumes.json")
 
     def __init__(self, timeout: int = 30) -> None:
         self.timeout = timeout
@@ -79,8 +80,17 @@ class MyStocksAfricaProvider:
 
     @staticmethod
     def _integer(value: Any) -> int:
+        if value in (None, "", "-", "N/A"):
+            return 0
+
         try:
-            return int(float(value or 0))
+            cleaned = (
+                str(value)
+                .replace(",", "")
+                .replace(" ", "")
+                .strip()
+            )
+            return int(float(cleaned))
         except (TypeError, ValueError):
             return 0
 
@@ -134,11 +144,40 @@ class MyStocksAfricaProvider:
         quotes: Dict[str, Dict[str, Any]] = {}
         checked_at = datetime.now(timezone.utc).isoformat()
 
+        volume_cache: Dict[str, Dict[str, Any]] = {}
+
+        if self.VOLUME_CACHE_FILE.exists():
+            try:
+                cached = json.loads(
+                    self.VOLUME_CACHE_FILE.read_text(encoding="utf-8")
+                )
+
+                if isinstance(cached, dict):
+                    volume_cache = cached
+            except (OSError, json.JSONDecodeError):
+                volume_cache = {}
+
         for item in stocks:
             symbol = self._symbol(item)
 
             if not symbol:
                 continue
+
+            raw_volume = item.get("volume")
+            volume_is_live = raw_volume not in (None, "")
+
+            if volume_is_live:
+                volume = self._integer(raw_volume)
+
+                volume_cache[symbol] = {
+                    "volume": volume,
+                    "captured_at": checked_at,
+                    "provider_update": item.get("lastPriceUpdate"),
+                }
+            else:
+                volume = self._integer(
+                    volume_cache.get(symbol, {}).get("volume")
+                )
 
             quotes[symbol] = {
                 "symbol": symbol,
@@ -150,7 +189,14 @@ class MyStocksAfricaProvider:
                 "open": self._number(item.get("openPrice")),
                 "high": self._number(item.get("dayHigh")),
                 "low": self._number(item.get("dayLow")),
-                "volume": self._integer(item.get("volume")),
+                "volume": volume,
+                "volume_is_live": volume_is_live,
+                "volume_is_stale": not volume_is_live and volume > 0,
+                "volume_captured_at": (
+                    checked_at
+                    if volume_is_live
+                    else volume_cache.get(symbol, {}).get("captured_at")
+                ),
                 "market_cap": item.get("marketCap"),
                 "pe_ratio": item.get("peRatio"),
                 "eps": item.get("eps"),
@@ -165,6 +211,13 @@ class MyStocksAfricaProvider:
 
         if not quotes:
             raise ValueError("No NSE quotes were normalized.")
+
+        self.QUOTES_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+        self.VOLUME_CACHE_FILE.write_text(
+            json.dumps(volume_cache, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
 
         self.QUOTES_FILE.write_text(
             json.dumps(quotes, indent=2, ensure_ascii=False),

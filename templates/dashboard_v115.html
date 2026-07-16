@@ -298,12 +298,19 @@
             <h2>AI Learning Engine</h2>
         </div>
 
-        <span class="learning-status-badge">
-            {{ learning.status|default('COLLECTING DATA') }}
-        </span>
+        <div class="learning-status-group">
+            <span class="learning-status-badge">
+                {{ learning.status|default('COLLECTING DATA') }}
+            </span>
+
+            <small>
+                {{ learning.evaluations|default(0) }}
+                live evaluations
+            </small>
+        </div>
     </div>
 
-    <div class="learning-metric-grid">
+    <div class="learning-metric-grid learning-metric-grid-rc2">
 
         <article>
             <span>Learning Score</span>
@@ -328,7 +335,6 @@
                 {{ learning.successful|default(0) }}
                 successful of
                 {{ learning.evaluations|default(0) }}
-                evaluations
             </small>
         </article>
 
@@ -348,38 +354,80 @@
             <span>Confidence Adjustment</span>
 
             <strong class="{% if learning.confidence_adjustment|default(0) >= 0 %}positive{% else %}negative{% endif %}">
+                {% if learning.confidence_adjustment|default(0) > 0 %}+{% endif %}
                 {{ learning.confidence_adjustment|default(0) }}
             </strong>
 
             <small>
-                Conservative adaptive points
+                Adaptive confidence points
+            </small>
+        </article>
+
+        <article>
+            <span>Recommendation Quality</span>
+
+            <strong class="learning-stars">
+                {{ learning.recommendation_quality|default('☆☆☆☆☆') }}
+            </strong>
+
+            <small>
+                {{ learning.recommendation_quality_label|default('Learning') }}
+            </small>
+        </article>
+
+        <article>
+            <span>Learning Phase</span>
+
+            <strong>
+                {{ learning.learning_phase|default('Collecting Data') }}
+            </strong>
+
+            <small>
+                Current model maturity stage
             </small>
         </article>
 
     </div>
 
-    <div class="learning-progress-row">
+    <div class="learning-progress-row learning-progress-row-rc2">
 
-        <div>
-            <span>Learning history progress</span>
+        <div class="learning-progress-heading">
+            <div>
+                <span>Learning Progress</span>
 
-            <strong>
-                {{ learning.evaluations|default(0) }}
-                /
-                {{ learning.minimum_active_sample|default(20) }}
+                <strong>
+                    {{ learning.evaluations|default(0) }}
+                    /
+                    {{ learning.target_evaluations|default(500) }}
+                    Evaluations
+                </strong>
+            </div>
+
+            <strong class="learning-progress-percent">
+                {{ learning.progress_pct|default(0) }}%
             </strong>
         </div>
 
         <div class="learning-progress">
             <div
                 class="learning-progress-fill"
-                style="width: {{ learning.sample_progress_pct|default(0) }}%">
+                style="width: {{ learning.progress_pct|default(0) }}%">
             </div>
+        </div>
+
+        <div class="learning-cycle-meta">
+            <span>
+                Last Learning Cycle
+            </span>
+
+            <strong>
+                {{ learning.last_learning_cycle|default('Waiting for next cycle') }}
+            </strong>
         </div>
 
     </div>
 
-    <div class="learning-insight-grid">
+    <div class="learning-insight-grid learning-insight-grid-rc2">
 
         <div>
             <span>Best Decision</span>
@@ -391,6 +439,13 @@
                     Collecting data
                 {% endif %}
             </strong>
+
+            {% if learning.best_decision %}
+            <small>
+                {{ learning.best_decision.accuracy|default(0) }}%
+                accuracy
+            </small>
+            {% endif %}
         </div>
 
         <div>
@@ -399,24 +454,97 @@
             <strong>
                 {% if learning.best_horizon %}
                     {{ learning.best_horizon.horizon_days }}
-                    trading days
+                    trading day{% if learning.best_horizon.horizon_days != 1 %}s{% endif %}
                 {% else %}
                     Collecting data
                 {% endif %}
             </strong>
+
+            {% if learning.best_horizon %}
+            <small>
+                {{ learning.best_horizon.accuracy|default(0) }}%
+                accuracy
+            </small>
+            {% endif %}
         </div>
 
         <div>
             <span>Best Sector</span>
 
             <strong>
-                {% if learning.best_sector %}
+                {% if learning.best_sector
+                      and learning.best_sector.sector
+                      and learning.best_sector.sector != 'Unknown' %}
                     {{ learning.best_sector.sector }}
                 {% else %}
-                    Collecting data
+                    Learning...
                 {% endif %}
             </strong>
+
+            <small>
+                Sector evidence is still developing
+            </small>
         </div>
+
+    </div>
+
+    <div class="learning-ai-insights">
+
+        <div class="learning-ai-insights-heading">
+            <div>
+                <span class="section-label">
+                    AI Interpretation
+                </span>
+
+                <h3>Learning Insights</h3>
+            </div>
+
+            <span class="learning-phase-chip">
+                {{ learning.learning_phase|default('Collecting Data') }}
+            </span>
+        </div>
+
+        <ul>
+            <li>
+                Historical recommendation accuracy is
+                <strong>{{ learning.accuracy|default(0) }}%</strong>.
+            </li>
+
+            <li>
+                The engine has completed
+                <strong>{{ learning.evaluations|default(0) }}</strong>
+                of
+                <strong>{{ learning.target_evaluations|default(500) }}</strong>
+                target evaluations.
+            </li>
+
+            {% if learning.best_decision %}
+            <li>
+                <strong>{{ learning.best_decision.decision }}</strong>
+                currently has the strongest decision accuracy at
+                <strong>{{ learning.best_decision.accuracy|default(0) }}%</strong>.
+            </li>
+            {% endif %}
+
+            {% if learning.best_horizon %}
+            <li>
+                The strongest tested horizon is
+                <strong>
+                    {{ learning.best_horizon.horizon_days }}
+                    trading day{% if learning.best_horizon.horizon_days != 1 %}s{% endif %}
+                </strong>.
+            </li>
+            {% endif %}
+
+            <li>
+                Confidence calibration is currently adjusted by
+                <strong>
+                    {% if learning.confidence_adjustment|default(0) > 0 %}+{% endif %}
+                    {{ learning.confidence_adjustment|default(0) }}
+                </strong>
+                points.
+            </li>
+        </ul>
 
     </div>
 
@@ -499,6 +627,23 @@
                 id="breadth-decline-bar"
                 class="breadth-bar-negative">
             </div>
+        </div>
+
+
+        <div class="market-pulse-panel">
+
+            <div class="market-pulse-heading">
+                <span class="section-label">
+                    AI Interpretation
+                </span>
+
+                <h3>Market Pulse</h3>
+            </div>
+
+            <p id="market-pulse-text">
+                Loading market interpretation...
+            </p>
+
         </div>
     </article>
 
@@ -905,7 +1050,7 @@
 
 
 <script
-    src="{{ url_for('static', filename='js/v115_charts.js') }}">
+    src="{{ url_for('static', filename='js/v115_charts.js') }}?v=1164-dashboard-loading-final">
 </script>
 
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
 from math import log10
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List
 
 from services.database import get_conn
@@ -278,6 +280,46 @@ def get_learning_summary(
             else "EARLY LEARNING"
         )
 
+
+    target_evaluations = 500
+
+    progress_pct = round(
+        min(
+            evaluations / target_evaluations * 100,
+            100.0,
+        ),
+        1,
+    )
+
+    if evaluations < 100:
+        learning_phase = "Collecting Data"
+    elif evaluations < 250:
+        learning_phase = "Pattern Recognition"
+    elif evaluations < 400:
+        learning_phase = "Adaptive Learning"
+    else:
+        learning_phase = "Production Ready"
+
+    last_learning_cycle = datetime.now(
+        ZoneInfo("Africa/Nairobi")
+    ).strftime("%d %b %Y %H:%M EAT")
+
+    if accuracy >= 85:
+        recommendation_quality = "★★★★★"
+        recommendation_quality_label = "Excellent"
+    elif accuracy >= 75:
+        recommendation_quality = "★★★★☆"
+        recommendation_quality_label = "Very Good"
+    elif accuracy >= 65:
+        recommendation_quality = "★★★☆☆"
+        recommendation_quality_label = "Good"
+    elif accuracy >= 50:
+        recommendation_quality = "★★☆☆☆"
+        recommendation_quality_label = "Developing"
+    else:
+        recommendation_quality = "★☆☆☆☆"
+        recommendation_quality_label = "Needs Improvement"
+
     return {
         "version": "11.6 Enterprise Intelligence",
         "status": status,
@@ -312,6 +354,18 @@ def get_learning_summary(
             sample_progress,
         "minimum_active_sample":
             MIN_SAMPLE_FOR_ACTIVE,
+        "target_evaluations":
+            target_evaluations,
+        "progress_pct":
+            progress_pct,
+        "learning_phase":
+            learning_phase,
+        "last_learning_cycle":
+            last_learning_cycle,
+        "recommendation_quality":
+            recommendation_quality,
+        "recommendation_quality_label":
+            recommendation_quality_label,
         "best_horizon": best_horizon,
         "best_decision": best_decision,
         "best_sector": best_sector,
