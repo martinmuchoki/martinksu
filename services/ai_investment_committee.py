@@ -387,8 +387,11 @@ def build_committee_decision(
     }
 
 
-def build_ai_investment_committee() -> Dict[str, Any]:
-    prediction_center = build_prediction_center()
+def build_ai_investment_committee(
+    prediction_center: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    if prediction_center is None:
+        prediction_center = build_prediction_center()
 
     profiles = prediction_center.get(
         "predictions",
