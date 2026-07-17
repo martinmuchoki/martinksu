@@ -20,8 +20,10 @@ from services.dashboard_charts import (
     get_market_breadth,
 )
 from services.reports import generate_daily_report
-from services.prediction_center import build_prediction_center
-from services.ai_investment_committee import build_ai_investment_committee
+from services.intelligence_orchestrator import (
+    get_prediction_center,
+    get_investment_committee,
+)
 from services.predictive_engine import build_predictions
 from services.risk_engine import (
     build_market_risk,
@@ -53,6 +55,14 @@ from services.portfolio_transactions import (
     get_cash_summary,
 )
 load_dotenv("/root/nse_signal_bot_v10_3/.env")
+
+from services.intelligence_analytics import (
+    get_dashboard_summary,
+    get_engine_statistics,
+    get_market_regime_statistics,
+    get_recommendation_statistics,
+)
+
 
 app = Flask(__name__)
 app.secret_key = os.getenv("MIP_SECRET_KEY")
@@ -697,7 +707,7 @@ def pwa_offline():
 def v1164_prediction_center():
     try:
         return jsonify(
-            build_prediction_center()
+            get_prediction_center()
         )
     except Exception as exc:
         app.logger.exception(
@@ -716,7 +726,7 @@ def v1164_prediction_center():
 def v117_investment_committee():
     try:
         return jsonify(
-            build_ai_investment_committee()
+            get_investment_committee()
         )
     except Exception as exc:
         app.logger.exception(
@@ -728,6 +738,85 @@ def v117_investment_committee():
             "message": str(exc),
         }), 500
 
+
+
+
+
+# ============================================================
+# BEGIN MIP PRO INTELLIGENCE ANALYTICS API
+# ============================================================
+
+@app.route("/api/v11.7/intelligence/summary")
+def v117_intelligence_summary():
+    try:
+        return jsonify(
+            get_dashboard_summary()
+        )
+    except Exception as exc:
+        app.logger.exception(
+            "Intelligence analytics summary failed"
+        )
+
+        return jsonify({
+            "error": "intelligence_summary_failed",
+            "message": str(exc),
+        }), 500
+
+
+@app.route("/api/v11.7/intelligence/performance")
+def v117_intelligence_performance():
+    try:
+        return jsonify(
+            get_engine_statistics()
+        )
+    except Exception as exc:
+        app.logger.exception(
+            "Intelligence performance analytics failed"
+        )
+
+        return jsonify({
+            "error": "intelligence_performance_failed",
+            "message": str(exc),
+        }), 500
+
+
+@app.route("/api/v11.7/intelligence/recommendations")
+def v117_intelligence_recommendations():
+    try:
+        return jsonify(
+            get_recommendation_statistics()
+        )
+    except Exception as exc:
+        app.logger.exception(
+            "Intelligence recommendation analytics failed"
+        )
+
+        return jsonify({
+            "error": "intelligence_recommendations_failed",
+            "message": str(exc),
+        }), 500
+
+
+@app.route("/api/v11.7/intelligence/regimes")
+def v117_intelligence_regimes():
+    try:
+        return jsonify(
+            get_market_regime_statistics()
+        )
+    except Exception as exc:
+        app.logger.exception(
+            "Intelligence regime analytics failed"
+        )
+
+        return jsonify({
+            "error": "intelligence_regimes_failed",
+            "message": str(exc),
+        }), 500
+
+
+# ============================================================
+# END MIP PRO INTELLIGENCE ANALYTICS API
+# ============================================================
 
 
 if __name__ == "__main__":
