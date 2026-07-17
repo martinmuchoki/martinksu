@@ -1,0 +1,18 @@
+MIP PRO Intelligence Analytics — Stage 1
+
+Installed:
+services/intelligence_analytics.py
+
+Capabilities:
+- Activity statistics
+- Engine timing statistics
+- Market regime statistics
+- Committee recommendation statistics
+- Repository health
+- Combined dashboard summary
+
+Installed at:
+2026-07-17_06-28-35
+
+Backup:
+backups/intelligence_analytics_stage1/2026-07-17_06-28-35
