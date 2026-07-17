@@ -5,6 +5,7 @@ from datetime import datetime
 from threading import RLock
 from time import monotonic
 from typing import Any, Dict
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from services.ai_investment_committee import (
@@ -12,6 +13,9 @@ from services.ai_investment_committee import (
 )
 from services.prediction_center import (
     build_prediction_center,
+)
+from services.intelligence_repository import (
+    save_intelligence_context,
 )
 
 
@@ -87,6 +91,24 @@ def build_intelligence_context(
                 "ttl_seconds": cache_seconds,
             }
 
+            previous_repository = cached.get(
+                "repository",
+                {},
+            )
+
+            cached["repository"] = {
+                "saved": False,
+                "duplicate": False,
+                "cache_hit": True,
+                "run_id": previous_repository.get(
+                    "run_id",
+                ),
+                "persisted_run_id":
+                    previous_repository.get(
+                        "run_id",
+                    ),
+            }
+
             return cached
 
         started = monotonic()
@@ -115,7 +137,8 @@ def build_intelligence_context(
 
         payload: Dict[str, Any] = {
             "version":
-                "MIP PRO Intelligence Orchestrator Phase 1",
+                "MIP PRO Intelligence Orchestrator Phase 2",
+            "run_id": f"intel-{uuid4().hex}",
             "generated_at": _now_iso(),
             "stock_count":
                 prediction_center.get(
@@ -168,6 +191,28 @@ def build_intelligence_context(
                 "ttl_seconds": cache_seconds,
             },
         }
+
+        try:
+            repository_result = save_intelligence_context(
+                payload,
+                run_id=payload["run_id"],
+                source="intelligence_orchestrator",
+                engine_version=payload.get("version"),
+                cache_hit=False,
+            )
+
+            payload["repository"] = repository_result
+
+        except Exception as exc:
+            # Persistence failure must not take down the
+            # live dashboard or intelligence APIs.
+            payload["repository"] = {
+                "saved": False,
+                "duplicate": False,
+                "cache_hit": False,
+                "run_id": payload.get("run_id"),
+                "error": str(exc),
+            }
 
         _CONTEXT_CACHE["payload"] = deepcopy(
             payload
