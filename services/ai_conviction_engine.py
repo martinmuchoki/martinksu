@@ -38,13 +38,19 @@ def _upper(value: Any) -> str:
 def _normalise_risk(value: Any) -> str:
     text = _upper(value)
 
+    if "INSUFFICIENT" in text:
+        return "INSUFFICIENT HISTORY"
+
     if "LOW" in text:
         return "LOW"
 
     if "HIGH" in text:
         return "HIGH"
 
-    return "MEDIUM"
+    if "MEDIUM" in text or "MODERATE" in text:
+        return "MEDIUM"
+
+    return "INSUFFICIENT HISTORY"
 
 
 def _risk_points(risk: str) -> float:
@@ -52,7 +58,8 @@ def _risk_points(risk: str) -> float:
         "LOW": 10.0,
         "MEDIUM": 6.0,
         "HIGH": 2.0,
-    }.get(risk, 6.0)
+        "INSUFFICIENT HISTORY": 4.0,
+    }.get(risk, 4.0)
 
 
 def _decision_points(decision: Any) -> float:
@@ -192,12 +199,14 @@ def build_conviction_profile(
     risk_metrics: Optional[Dict[str, Any]] = None,
     learning: Optional[Dict[str, Any]] = None,
     breadth: Optional[Dict[str, Any]] = None,
+    market_regime: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     institutional = institutional or {}
     prediction = prediction or {}
     risk_metrics = risk_metrics or {}
     learning = learning or {}
     breadth = breadth or {}
+    market_regime = market_regime or {}
 
     symbol = _upper(
         screener.get("symbol")
@@ -218,18 +227,21 @@ def build_conviction_profile(
     )
 
     expected_return = _safe_float(
-        prediction.get("expected_return"),
+        prediction.get("expected_return_pct"),
         _safe_float(
-            prediction.get("expected_return_pct"),
+            prediction.get("expected_return"),
             0.0,
         ),
     )
 
     prediction_probability = _safe_float(
-        prediction.get("probability"),
+        prediction.get("probability_success_pct"),
         _safe_float(
-            prediction.get("confidence"),
-            50.0,
+            prediction.get("probability"),
+            _safe_float(
+                prediction.get("confidence"),
+                50.0,
+            ),
         ),
     )
 
@@ -304,8 +316,26 @@ def build_conviction_profile(
         5.0,
     )
 
-    conviction_score = _safe_int(
+    raw_conviction_score = _safe_int(
         _clamp(raw_score)
+    )
+
+    regime_multiplier = _safe_float(
+        market_regime.get(
+            "conviction_multiplier"
+        ),
+        1.0,
+    )
+
+    regime_adjusted_conviction_score = _safe_int(
+        _clamp(
+            raw_conviction_score
+            * regime_multiplier
+        )
+    )
+
+    conviction_score = (
+        regime_adjusted_conviction_score
     )
 
     confidence = _safe_int(
@@ -357,12 +387,33 @@ def build_conviction_profile(
                 0.0,
             ),
         ),
+        "raw_conviction_score":
+            raw_conviction_score,
+        "regime_adjusted_conviction_score":
+            regime_adjusted_conviction_score,
         "conviction_score": conviction_score,
         "rating": _rating(conviction_score),
         "signal": _signal(conviction_score),
+        "market_regime":
+            market_regime.get("regime"),
+        "market_regime_badge":
+            market_regime.get("badge"),
+        "regime_multiplier":
+            regime_multiplier,
         "confidence": confidence,
         "risk": risk,
-        "horizon": _horizon(expected_return),
+        "risk_level": risk,
+        "horizon": (
+            f"{_safe_int(prediction.get('holding_period_days'))} Days"
+            if _safe_int(
+                prediction.get("holding_period_days")
+            ) > 0
+            else _horizon(expected_return)
+        ),
+        "holding_period_days": _safe_int(
+            prediction.get("holding_period_days"),
+            0,
+        ),
         "expected_return": round(
             expected_return,
             2,
@@ -370,6 +421,106 @@ def build_conviction_profile(
         "target_price": round(
             target_price,
             2,
+        ),
+        "prediction_probability_pct": round(
+            prediction_probability,
+            2,
+        ),
+        "prediction_signal": (
+            prediction.get("signal")
+            or screener.get("decision")
+            or "WATCH"
+        ),
+        "prediction_model_mode": prediction.get(
+            "model_mode"
+        ),
+        "annualized_volatility_pct": round(
+            _safe_float(
+                prediction.get(
+                    "annualized_volatility_pct"
+                ),
+                _safe_float(
+                    risk_metrics.get(
+                        "volatility_pct"
+                    ),
+                    0.0,
+                ),
+            ),
+            2,
+        ),
+        "maximum_expected_drawdown_pct": round(
+            _safe_float(
+                prediction.get(
+                    "maximum_expected_drawdown_pct"
+                ),
+                0.0,
+            ),
+            2,
+        ),
+        "volatility_pct": round(
+            _safe_float(
+                risk_metrics.get("volatility_pct"),
+                _safe_float(
+                    prediction.get(
+                        "annualized_volatility_pct"
+                    ),
+                    0.0,
+                ),
+            ),
+            2,
+        ),
+        "maximum_drawdown_pct": round(
+            _safe_float(
+                risk_metrics.get(
+                    "maximum_drawdown_pct"
+                ),
+                _safe_float(
+                    prediction.get(
+                        "maximum_expected_drawdown_pct"
+                    ),
+                    0.0,
+                ),
+            ),
+            2,
+        ),
+        "var_95_pct": round(
+            _safe_float(
+                risk_metrics.get("var_95_pct"),
+                0.0,
+            ),
+            2,
+        ),
+        "cvar_95_pct": round(
+            _safe_float(
+                risk_metrics.get("cvar_95_pct"),
+                0.0,
+            ),
+            2,
+        ),
+        "sharpe_ratio": round(
+            _safe_float(
+                risk_metrics.get("sharpe_ratio"),
+                0.0,
+            ),
+            2,
+        ),
+        "sortino_ratio": round(
+            _safe_float(
+                risk_metrics.get("sortino_ratio"),
+                0.0,
+            ),
+            2,
+        ),
+        "risk_history_rows": _safe_int(
+            risk_metrics.get("history_rows"),
+            0,
+        ),
+        "risk_history_status": (
+            "SUFFICIENT"
+            if _safe_int(
+                risk_metrics.get("history_rows")
+            ) >= 30
+            else "INSUFFICIENT HISTORY"
         ),
         "decision": screener.get(
             "decision",
@@ -419,6 +570,7 @@ def build_conviction_profiles(
     ] = None,
     learning: Optional[Dict[str, Any]] = None,
     breadth: Optional[Dict[str, Any]] = None,
+    market_regime: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     institutional_map = {
         _upper(item.get("symbol")): item
@@ -449,6 +601,7 @@ def build_conviction_profiles(
             ),
             learning=learning,
             breadth=breadth,
+            market_regime=market_regime,
         )
         for item in screener_rows
     ]

@@ -672,59 +672,254 @@
     </label>
 </section>
 
-<article class="panel intelligence-switch-panel" id="predictions-view">
-        <div class="panel-heading">
+<article
+    class="panel intelligence-switch-panel"
+    id="predictions-view">
+
+    <div class="panel-heading">
+        <div>
+            <span class="section-label">
+                Unified Forward Intelligence
+            </span>
+
+            <h2>Prediction Center 2.0</h2>
+        </div>
+
+        <span
+            id="prediction-center-status"
+            class="prediction-center-status">
+            Loading...
+        </span>
+    </div>
+
+    <section class="market-regime-panel">
+
+        <div class="market-regime-header">
             <div>
-                <span class="section-label">Forward Intelligence</span>
-                <h2>All NSE Predictions</h2>
+                <span class="section-label">
+                    Institutional Market Context
+                </span>
+
+                <h3>Market Regime</h3>
             </div>
+
+            <span
+                id="market-regime-badge"
+                class="market-regime-badge">
+                Loading...
+            </span>
         </div>
 
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th>Expected Return</th>
-                        <th>Probability</th>
-                        <th>Target</th>
-                    </tr>
-                </thead>
+        <div class="market-regime-grid">
 
-                <tbody>
-                    {% for item in (predictions|default([], true))[:16] %}
-                    <tr>
-                        <td>
-                            <a href="/stocks/{{ item.symbol }}">
-                                {{ item.symbol }}
-                            </a>
-                        </td>
+            <article>
+                <span>Regime Score</span>
+                <strong id="market-regime-score">—</strong>
+            </article>
 
-                        <td class="{% if item.expected_return_pct >= 0 %}positive{% else %}negative{% endif %}">
-                            {{ item.expected_return_pct|default(0) }}%
-                        </td>
+            <article>
+                <span>Confidence</span>
+                <strong id="market-regime-confidence">—</strong>
+            </article>
 
-                        <td>
-                            {{ item.probability_success_pct|default(0) }}%
-                        </td>
+            <article>
+                <span>Market Risk</span>
+                <strong id="market-regime-risk">—</strong>
+            </article>
 
-                        <td>
-                            KSh {{ item.target_price|default(0) }}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4">
-                            Prediction data is currently unavailable.
-                            The system will retry during the next market scan.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <article>
+                <span>Equities</span>
+                <strong id="market-regime-equities">—</strong>
+            </article>
+
+            <article>
+                <span>Cash</span>
+                <strong id="market-regime-cash">—</strong>
+            </article>
+
+            <article>
+                <span>Conviction Adjustment</span>
+                <strong id="market-regime-multiplier">—</strong>
+            </article>
+
         </div>
-    </article>
 
+        <div class="market-regime-components">
+
+            <div>
+                <span>Breadth</span>
+                <strong id="market-regime-breadth">—</strong>
+            </div>
+
+            <div>
+                <span>Predictions</span>
+                <strong id="market-regime-predictions">—</strong>
+            </div>
+
+            <div>
+                <span>Institutional</span>
+                <strong id="market-regime-institutional">—</strong>
+            </div>
+
+            <div>
+                <span>Risk Stability</span>
+                <strong id="market-regime-risk-score">—</strong>
+            </div>
+
+            <div>
+                <span>Learning</span>
+                <strong id="market-regime-learning">—</strong>
+            </div>
+
+        </div>
+
+        <ul
+            id="market-regime-reasons"
+            class="market-regime-reasons">
+        </ul>
+
+    </section>
+
+    <div
+        id="prediction-summary"
+        class="prediction-summary-grid">
+
+        <article>
+            <span>Predictions</span>
+            <strong id="prediction-summary-count">—</strong>
+        </article>
+
+        <article>
+            <span>Average Conviction</span>
+            <strong id="prediction-summary-conviction">—</strong>
+        </article>
+
+        <article>
+            <span>Average Return</span>
+            <strong id="prediction-summary-return">—</strong>
+        </article>
+
+        <article>
+            <span>Highest Conviction</span>
+            <strong id="prediction-summary-leader">—</strong>
+        </article>
+
+        <article>
+            <span>Institutional Signals</span>
+            <strong id="prediction-summary-institutional">—</strong>
+        </article>
+
+        <article>
+            <span>Low Risk</span>
+            <strong id="prediction-summary-low-risk">—</strong>
+        </article>
+
+    </div>
+
+    <div class="prediction-filter-bar">
+
+        <label>
+            Search
+            <input
+                id="prediction-search"
+                type="search"
+                placeholder="Symbol or company">
+        </label>
+
+        <label>
+            Signal
+            <select id="prediction-signal-filter">
+                <option value="">All signals</option>
+                <option value="STRONG BUY">Strong Buy</option>
+                <option value="BUY">Buy</option>
+                <option value="HOLD">Hold</option>
+                <option value="WATCH">Watch</option>
+                <option value="AVOID">Avoid</option>
+            </select>
+        </label>
+
+        <label>
+            Risk
+            <select id="prediction-risk-filter">
+                <option value="">All risk levels</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="INSUFFICIENT HISTORY">
+                    Insufficient History
+                </option>
+            </select>
+        </label>
+
+        <label>
+            Minimum Conviction
+            <input
+                id="prediction-conviction-filter"
+                type="number"
+                min="0"
+                max="100"
+                value="0">
+        </label>
+
+        <label>
+            Sort By
+            <select id="prediction-sort">
+                <option value="conviction">
+                    Conviction
+                </option>
+                <option value="confidence">
+                    Confidence
+                </option>
+                <option value="return">
+                    Expected Return
+                </option>
+                <option value="probability">
+                    Probability
+                </option>
+                <option value="target">
+                    Target Price
+                </option>
+                <option value="rvol">
+                    Relative Volume
+                </option>
+            </select>
+        </label>
+
+        <button
+            id="prediction-reset"
+            type="button"
+            class="filter-reset-button">
+            Reset
+        </button>
+
+    </div>
+
+    <p class="filter-result-count">
+        Showing
+        <strong id="prediction-visible-count">0</strong>
+        predictions
+    </p>
+
+    <div
+        id="prediction-center-error"
+        class="prediction-center-error"
+        hidden>
+    </div>
+
+    <div
+        id="prediction-center-container"
+        class="prediction-card-grid">
+
+        <div class="prediction-loading-state">
+            <span class="chart-loading-spinner"></span>
+            <strong>
+                Loading unified AI predictions...
+            </strong>
+        </div>
+
+    </div>
+
+</article>
 </section>
 
 <section class="panel intelligence-switch-panel" id="screener-view">
@@ -1050,7 +1245,7 @@
 
 
 <script
-    src="{{ url_for('static', filename='js/v115_charts.js') }}?v=1164-dashboard-loading-final">
+    src="{{ url_for('static', filename='js/v115_charts.js') }}?v=1170-market-regime-1">
 </script>
 
 

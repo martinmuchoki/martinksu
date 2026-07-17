@@ -2160,3 +2160,867 @@ select {
         transform: rotate(360deg);
     }
 }
+
+/* ==================================================
+   MIP PRO V11.6.4 RC3
+   Prediction Center 2.0
+   ================================================== */
+
+.prediction-center-status {
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #e9f6ee;
+    color: #08783f;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.prediction-summary-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(6, minmax(130px, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.prediction-summary-grid article {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #f8fbf9;
+}
+
+.prediction-summary-grid span,
+.prediction-summary-grid strong {
+    display: block;
+}
+
+.prediction-summary-grid span {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-summary-grid strong {
+    font-size: 20px;
+}
+
+.prediction-filter-bar {
+    display: grid;
+    grid-template-columns:
+        minmax(170px, 1.4fr)
+        repeat(4, minmax(130px, 1fr))
+        auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+}
+
+.prediction-filter-bar label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.prediction-filter-bar input,
+.prediction-filter-bar select {
+    width: 100%;
+    margin-top: 6px;
+}
+
+.prediction-card-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(260px, 1fr));
+    gap: 15px;
+}
+
+.prediction-card {
+    padding: 17px;
+    border: 1px solid var(--border);
+    border-left: 5px solid #7d8982;
+    border-radius: 13px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(24, 45, 33, 0.06);
+}
+
+.prediction-signal-strong-buy {
+    border-left-color: #08783f;
+}
+
+.prediction-signal-buy {
+    border-left-color: #29a15d;
+}
+
+.prediction-signal-hold {
+    border-left-color: #c59c28;
+}
+
+.prediction-signal-watch {
+    border-left-color: #d47b27;
+}
+
+.prediction-signal-avoid {
+    border-left-color: #b53b3b;
+}
+
+.prediction-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.prediction-card-header small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.prediction-rank {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.prediction-symbol {
+    color: var(--black);
+    font-size: 23px;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.prediction-rating {
+    color: #b48c25;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.prediction-signal-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.prediction-signal-badge,
+.prediction-risk-badge {
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.signal-strong-buy,
+.signal-buy {
+    background: #e8f6ee;
+    color: #08783f;
+}
+
+.signal-hold {
+    background: #fbf3d9;
+    color: #82620a;
+}
+
+.signal-watch {
+    background: #fff0df;
+    color: #9b510c;
+}
+
+.signal-avoid {
+    background: #fde9e9;
+    color: #9d2929;
+}
+
+.risk-low {
+    background: #e8f6ee;
+    color: #08783f;
+}
+
+.risk-medium {
+    background: #fbf3d9;
+    color: #82620a;
+}
+
+.risk-high {
+    background: #fde9e9;
+    color: #9d2929;
+}
+
+.risk-insufficient-history {
+    background: #edf0ef;
+    color: #56615b;
+}
+
+.prediction-conviction-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.prediction-conviction-heading span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-conviction-heading strong {
+    font-size: 20px;
+}
+
+.prediction-conviction-bar {
+    height: 8px;
+    margin: 8px 0 15px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e2e9e5;
+}
+
+.prediction-conviction-bar div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        #b48c25,
+        #08783f
+    );
+}
+
+.prediction-metric-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.prediction-metric-grid > div {
+    padding: 10px;
+    border-radius: 9px;
+    background: #f7faf8;
+}
+
+.prediction-metric-grid span,
+.prediction-metric-grid strong {
+    display: block;
+}
+
+.prediction-metric-grid span {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-metric-grid strong {
+    font-size: 14px;
+}
+
+.prediction-institutional {
+    margin-top: 13px;
+    padding: 11px;
+    border-radius: 9px;
+    background: #eef7f2;
+}
+
+.prediction-institutional span,
+.prediction-institutional strong {
+    display: block;
+}
+
+.prediction-institutional span {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-analysis {
+    margin-top: 13px;
+    border-top: 1px solid var(--border);
+    padding-top: 11px;
+}
+
+.prediction-analysis summary {
+    cursor: pointer;
+    color: #08783f;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.prediction-analysis-content {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.prediction-analysis-content > div {
+    padding: 9px;
+    border-radius: 8px;
+    background: #f7faf8;
+}
+
+.prediction-analysis-content span,
+.prediction-analysis-content strong {
+    display: block;
+}
+
+.prediction-analysis-content span {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-reasons {
+    margin: 12px 0 0;
+    padding-left: 18px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.prediction-loading-state,
+.prediction-empty-state {
+    grid-column: 1 / -1;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+}
+
+.prediction-center-error {
+    margin: 12px 0;
+    padding: 12px;
+    border-radius: 9px;
+    background: #fde9e9;
+    color: #9d2929;
+}
+
+@media (max-width: 1250px) {
+    .prediction-summary-grid {
+        grid-template-columns:
+            repeat(3, minmax(130px, 1fr));
+    }
+
+    .prediction-card-grid {
+        grid-template-columns:
+            repeat(2, minmax(260px, 1fr));
+    }
+
+    .prediction-filter-bar {
+        grid-template-columns:
+            repeat(3, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .prediction-summary-grid,
+    .prediction-card-grid,
+    .prediction-filter-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================================================
+   MIP PRO V11.6.4 RC3
+   Prediction Center 2.0
+   ================================================== */
+
+.prediction-center-status {
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #e9f6ee;
+    color: #08783f;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.prediction-summary-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(6, minmax(130px, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.prediction-summary-grid article {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #f8fbf9;
+}
+
+.prediction-summary-grid span,
+.prediction-summary-grid strong {
+    display: block;
+}
+
+.prediction-summary-grid span {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-summary-grid strong {
+    font-size: 20px;
+}
+
+.prediction-filter-bar {
+    display: grid;
+    grid-template-columns:
+        minmax(170px, 1.4fr)
+        repeat(4, minmax(130px, 1fr))
+        auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+}
+
+.prediction-filter-bar label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.prediction-filter-bar input,
+.prediction-filter-bar select {
+    width: 100%;
+    margin-top: 6px;
+}
+
+.prediction-card-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(260px, 1fr));
+    gap: 15px;
+}
+
+.prediction-card {
+    padding: 17px;
+    border: 1px solid var(--border);
+    border-left: 5px solid #7d8982;
+    border-radius: 13px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(24, 45, 33, 0.06);
+}
+
+.prediction-signal-strong-buy {
+    border-left-color: #08783f;
+}
+
+.prediction-signal-buy {
+    border-left-color: #29a15d;
+}
+
+.prediction-signal-hold {
+    border-left-color: #c59c28;
+}
+
+.prediction-signal-watch {
+    border-left-color: #d47b27;
+}
+
+.prediction-signal-avoid {
+    border-left-color: #b53b3b;
+}
+
+.prediction-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.prediction-card-header small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.prediction-rank {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.prediction-symbol {
+    color: var(--black);
+    font-size: 23px;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.prediction-rating {
+    color: #b48c25;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.prediction-signal-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.prediction-signal-badge,
+.prediction-risk-badge {
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.signal-strong-buy,
+.signal-buy {
+    background: #e8f6ee;
+    color: #08783f;
+}
+
+.signal-hold {
+    background: #fbf3d9;
+    color: #82620a;
+}
+
+.signal-watch {
+    background: #fff0df;
+    color: #9b510c;
+}
+
+.signal-avoid {
+    background: #fde9e9;
+    color: #9d2929;
+}
+
+.risk-low {
+    background: #e8f6ee;
+    color: #08783f;
+}
+
+.risk-medium {
+    background: #fbf3d9;
+    color: #82620a;
+}
+
+.risk-high {
+    background: #fde9e9;
+    color: #9d2929;
+}
+
+.risk-insufficient-history {
+    background: #edf0ef;
+    color: #56615b;
+}
+
+.prediction-conviction-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.prediction-conviction-heading span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-conviction-heading strong {
+    font-size: 20px;
+}
+
+.prediction-conviction-bar {
+    height: 8px;
+    margin: 8px 0 15px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e2e9e5;
+}
+
+.prediction-conviction-bar div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        #b48c25,
+        #08783f
+    );
+}
+
+.prediction-metric-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.prediction-metric-grid > div {
+    padding: 10px;
+    border-radius: 9px;
+    background: #f7faf8;
+}
+
+.prediction-metric-grid span,
+.prediction-metric-grid strong {
+    display: block;
+}
+
+.prediction-metric-grid span {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-metric-grid strong {
+    font-size: 14px;
+}
+
+.prediction-institutional {
+    margin-top: 13px;
+    padding: 11px;
+    border-radius: 9px;
+    background: #eef7f2;
+}
+
+.prediction-institutional span,
+.prediction-institutional strong {
+    display: block;
+}
+
+.prediction-institutional span {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-analysis {
+    margin-top: 13px;
+    border-top: 1px solid var(--border);
+    padding-top: 11px;
+}
+
+.prediction-analysis summary {
+    cursor: pointer;
+    color: #08783f;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.prediction-analysis-content {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.prediction-analysis-content > div {
+    padding: 9px;
+    border-radius: 8px;
+    background: #f7faf8;
+}
+
+.prediction-analysis-content span,
+.prediction-analysis-content strong {
+    display: block;
+}
+
+.prediction-analysis-content span {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.prediction-reasons {
+    margin: 12px 0 0;
+    padding-left: 18px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.prediction-loading-state,
+.prediction-empty-state {
+    grid-column: 1 / -1;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+}
+
+.prediction-center-error {
+    margin: 12px 0;
+    padding: 12px;
+    border-radius: 9px;
+    background: #fde9e9;
+    color: #9d2929;
+}
+
+@media (max-width: 1250px) {
+    .prediction-summary-grid {
+        grid-template-columns:
+            repeat(3, minmax(130px, 1fr));
+    }
+
+    .prediction-card-grid {
+        grid-template-columns:
+            repeat(2, minmax(260px, 1fr));
+    }
+
+    .prediction-filter-bar {
+        grid-template-columns:
+            repeat(3, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .prediction-summary-grid,
+    .prediction-card-grid,
+    .prediction-filter-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* MIP PRO V11.7 Market Regime Panel */
+
+.market-regime-panel {
+    margin: 18px 0;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background:
+        linear-gradient(
+            135deg,
+            #f8fbf9,
+            #eef6f1
+        );
+}
+
+.market-regime-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 15px;
+}
+
+.market-regime-header h3 {
+    margin: 4px 0 0;
+}
+
+.market-regime-badge {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fbf3d9;
+    color: #82620a;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.market-regime-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(6, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.market-regime-grid article,
+.market-regime-components > div {
+    padding: 12px;
+    border: 1px solid rgba(8, 120, 63, 0.10);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.market-regime-grid span,
+.market-regime-grid strong,
+.market-regime-components span,
+.market-regime-components strong {
+    display: block;
+}
+
+.market-regime-grid span,
+.market-regime-components span {
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.market-regime-grid strong {
+    font-size: 17px;
+}
+
+.market-regime-components {
+    display: grid;
+    grid-template-columns:
+        repeat(5, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.market-regime-reasons {
+    margin: 14px 0 0;
+    padding-left: 20px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+@media (max-width: 1100px) {
+    .market-regime-grid {
+        grid-template-columns:
+            repeat(3, minmax(120px, 1fr));
+    }
+
+    .market-regime-components {
+        grid-template-columns:
+            repeat(3, minmax(120px, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .market-regime-header {
+        flex-direction: column;
+    }
+
+    .market-regime-grid,
+    .market-regime-components {
+        grid-template-columns: 1fr;
+    }
+}

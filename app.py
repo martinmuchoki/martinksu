@@ -20,6 +20,8 @@ from services.dashboard_charts import (
     get_market_breadth,
 )
 from services.reports import generate_daily_report
+from services.prediction_center import build_prediction_center
+from services.ai_investment_committee import build_ai_investment_committee
 from services.predictive_engine import build_predictions
 from services.risk_engine import (
     build_market_risk,
@@ -687,6 +689,44 @@ def pwa_service_worker():
 @app.route("/offline")
 def pwa_offline():
     return render_template("offline.html")
+
+
+
+
+@app.route("/api/v11.6.4/prediction-center")
+def v1164_prediction_center():
+    try:
+        return jsonify(
+            build_prediction_center()
+        )
+    except Exception as exc:
+        app.logger.exception(
+            "Prediction Center build failed"
+        )
+
+        return jsonify({
+            "error": "prediction_center_failed",
+            "message": str(exc),
+        }), 500
+
+
+
+
+@app.route("/api/v11.7/investment-committee")
+def v117_investment_committee():
+    try:
+        return jsonify(
+            build_ai_investment_committee()
+        )
+    except Exception as exc:
+        app.logger.exception(
+            "AI Investment Committee failed"
+        )
+
+        return jsonify({
+            "error": "investment_committee_failed",
+            "message": str(exc),
+        }), 500
 
 
 

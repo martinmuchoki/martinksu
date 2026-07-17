@@ -637,6 +637,8 @@ function initializeIntelligenceSelector() {
         || savedView === "screener"
     ) {
         selector.value = savedView;
+    } else {
+        selector.value = "predictions";
     }
 
     selector.addEventListener(
@@ -650,4 +652,705 @@ function initializeIntelligenceSelector() {
 document.addEventListener(
     "DOMContentLoaded",
     initializeIntelligenceSelector
+);
+
+/* ==================================================
+   MIP PRO V11.6.4 RC3
+   Prediction Center 2.0
+   ================================================== */
+
+let predictionCenterRows = [];
+
+function predictionNumber(
+    value,
+    fallback = 0
+) {
+    const number = Number(value);
+
+    return Number.isFinite(number)
+        ? number
+        : fallback;
+}
+
+function predictionSignalClass(signal) {
+    return String(signal || "WATCH")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+}
+
+function predictionRiskClass(risk) {
+    return String(risk || "INSUFFICIENT HISTORY")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+}
+
+function renderMarketRegime(payload) {
+    const regime = payload.market_regime || {};
+    const components = regime.components || {};
+
+    const values = {
+        "market-regime-score":
+            `${predictionNumber(
+                regime.regime_score
+            ).toFixed(2)}`,
+
+        "market-regime-confidence":
+            `${predictionNumber(
+                regime.confidence
+            ).toFixed(0)}%`,
+
+        "market-regime-risk":
+            regime.market_risk_level || "UNKNOWN",
+
+        "market-regime-equities":
+            `${predictionNumber(
+                regime.recommended_equities_pct
+            ).toFixed(0)}%`,
+
+        "market-regime-cash":
+            `${predictionNumber(
+                regime.recommended_cash_pct
+            ).toFixed(0)}%`,
+
+        "market-regime-multiplier":
+            `${predictionNumber(
+                regime.conviction_multiplier,
+                1
+            ).toFixed(2)}×`,
+
+        "market-regime-breadth":
+            predictionNumber(
+                components.breadth_score
+            ).toFixed(2),
+
+        "market-regime-predictions":
+            predictionNumber(
+                components.prediction_score
+            ).toFixed(2),
+
+        "market-regime-institutional":
+            predictionNumber(
+                components.institutional_score
+            ).toFixed(2),
+
+        "market-regime-risk-score":
+            predictionNumber(
+                components.risk_score
+            ).toFixed(2),
+
+        "market-regime-learning":
+            predictionNumber(
+                components.learning_score
+            ).toFixed(2),
+    };
+
+    Object.entries(values).forEach(
+        ([id, value]) => {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.textContent = value;
+            }
+        }
+    );
+
+    const badge = document.getElementById(
+        "market-regime-badge"
+    );
+
+    if (badge) {
+        badge.textContent = `${
+            regime.badge || "⚪"
+        } ${regime.regime || "UNKNOWN"}`;
+
+        badge.dataset.regime = String(
+            regime.regime || "UNKNOWN"
+        ).toLowerCase();
+    }
+
+    const reasons = document.getElementById(
+        "market-regime-reasons"
+    );
+
+    if (reasons) {
+        reasons.innerHTML = (
+            regime.reasons || []
+        )
+            .map(reason => `<li>${reason}</li>`)
+            .join("");
+    }
+}
+
+function renderPredictionSummary(payload) {
+    const summary = payload.summary || {};
+
+    const values = {
+        "prediction-summary-count":
+            summary.prediction_count ?? 0,
+
+        "prediction-summary-conviction":
+            `${predictionNumber(
+                summary.average_conviction
+            ).toFixed(1)}%`,
+
+        "prediction-summary-return":
+            `${predictionNumber(
+                summary.average_expected_return
+            ) >= 0 ? "+" : ""}${predictionNumber(
+                summary.average_expected_return
+            ).toFixed(2)}%`,
+
+        "prediction-summary-leader":
+            `${
+                summary.highest_conviction_symbol || "—"
+            } ${
+                summary.highest_conviction_score ?? ""
+            }`,
+
+        "prediction-summary-institutional":
+            summary.institutional_buying_count ?? 0,
+
+        "prediction-summary-low-risk":
+            summary.low_risk_count ?? 0,
+    };
+
+    Object.entries(values).forEach(
+        ([id, value]) => {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.textContent = value;
+            }
+        }
+    );
+}
+
+function buildPredictionCard(stock, index) {
+    const card = document.createElement("article");
+
+    const signal = stock.signal || "WATCH";
+    const risk = stock.risk_level || "INSUFFICIENT HISTORY";
+
+    const conviction = Math.max(
+        0,
+        Math.min(
+            100,
+            predictionNumber(
+                stock.conviction_score
+            )
+        )
+    );
+
+    const expectedReturn = predictionNumber(
+        stock.expected_return
+    );
+
+    const reasons = (
+        stock.reasons || []
+    )
+        .slice(0, 5)
+        .map(reason => `<li>${reason}</li>`)
+        .join("");
+
+    card.className = [
+        "prediction-card",
+        `prediction-signal-${predictionSignalClass(signal)}`,
+        `prediction-risk-${predictionRiskClass(risk)}`,
+    ].join(" ");
+
+    card.dataset.symbol = String(
+        stock.symbol || ""
+    ).toLowerCase();
+
+    card.dataset.company = String(
+        stock.name || ""
+    ).toLowerCase();
+
+    card.dataset.signal = signal;
+    card.dataset.risk = risk;
+    card.dataset.conviction = conviction;
+    card.dataset.confidence = predictionNumber(
+        stock.confidence
+    );
+    card.dataset.expectedReturn = expectedReturn;
+    card.dataset.probability = predictionNumber(
+        stock.prediction_probability_pct
+    );
+    card.dataset.target = predictionNumber(
+        stock.target_price
+    );
+    card.dataset.rvol = predictionNumber(
+        stock.relative_volume
+    );
+
+    card.innerHTML = `
+        <div class="prediction-card-header">
+
+            <div>
+                <span class="prediction-rank">
+                    #${index + 1}
+                </span>
+
+                <a
+                    class="prediction-symbol"
+                    href="/stocks/${encodeURIComponent(
+                        stock.symbol || ""
+                    )}">
+                    ${stock.symbol || "—"}
+                </a>
+
+                <small>
+                    ${stock.name || ""}
+                </small>
+            </div>
+
+            <div class="prediction-rating">
+                ${stock.rating || "☆☆☆☆☆"}
+            </div>
+
+        </div>
+
+        <div class="prediction-signal-row">
+
+            <span
+                class="prediction-signal-badge
+                signal-${predictionSignalClass(signal)}">
+                ${signal}
+            </span>
+
+            <span
+                class="prediction-risk-badge
+                risk-${predictionRiskClass(risk)}">
+                ${risk}
+            </span>
+
+        </div>
+
+        <div class="prediction-conviction-heading">
+            <span>AI Conviction</span>
+            <strong>${conviction.toFixed(0)}%</strong>
+        </div>
+
+        <div class="prediction-conviction-bar">
+            <div style="width: ${conviction}%"></div>
+        </div>
+
+        <div class="prediction-metric-grid">
+
+            <div>
+                <span>Confidence</span>
+                <strong>
+                    ${predictionNumber(
+                        stock.confidence
+                    ).toFixed(0)}%
+                </strong>
+            </div>
+
+            <div>
+                <span>Probability</span>
+                <strong>
+                    ${predictionNumber(
+                        stock.prediction_probability_pct
+                    ).toFixed(2)}%
+                </strong>
+            </div>
+
+            <div>
+                <span>Expected Return</span>
+                <strong class="${
+                    expectedReturn >= 0
+                        ? "positive"
+                        : "negative"
+                }">
+                    ${expectedReturn >= 0 ? "+" : ""}
+                    ${expectedReturn.toFixed(2)}%
+                </strong>
+            </div>
+
+            <div>
+                <span>Target Price</span>
+                <strong>
+                    KSh ${predictionNumber(
+                        stock.target_price
+                    ).toLocaleString(
+                        "en-KE",
+                        {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                        }
+                    )}
+                </strong>
+            </div>
+
+            <div>
+                <span>Horizon</span>
+                <strong>
+                    ${stock.horizon || "Monitor"}
+                </strong>
+            </div>
+
+            <div>
+                <span>RVOL</span>
+                <strong>
+                    ${predictionNumber(
+                        stock.relative_volume
+                    ).toFixed(2)}×
+                </strong>
+            </div>
+
+            <div>
+                <span>Volatility</span>
+                <strong>
+                    ${predictionNumber(
+                        stock.volatility_pct
+                    ).toFixed(2)}%
+                </strong>
+            </div>
+
+            <div>
+                <span>Sharpe</span>
+                <strong>
+                    ${predictionNumber(
+                        stock.sharpe_ratio
+                    ).toFixed(2)}
+                </strong>
+            </div>
+
+        </div>
+
+        <div class="prediction-institutional">
+            <span>Institutional Intelligence</span>
+            <strong>
+                ${stock.institutional_signal ||
+                  "No strong institutional signal"}
+            </strong>
+        </div>
+
+        <details class="prediction-analysis">
+            <summary>
+                View AI Analysis
+            </summary>
+
+            <div class="prediction-analysis-content">
+
+                <div>
+                    <span>Trend</span>
+                    <strong>
+                        ${stock.trend || "Neutral"}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>RSI</span>
+                    <strong>
+                        ${predictionNumber(
+                            stock.rsi
+                        ).toFixed(2)}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Maximum Drawdown</span>
+                    <strong>
+                        ${predictionNumber(
+                            stock.maximum_drawdown_pct
+                        ).toFixed(2)}%
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Risk History</span>
+                    <strong>
+                        ${stock.risk_history_status ||
+                          "INSUFFICIENT HISTORY"}
+                    </strong>
+                </div>
+
+            </div>
+
+            <ul class="prediction-reasons">
+                ${reasons || `
+                    <li>
+                        Further confirmation is required.
+                    </li>
+                `}
+            </ul>
+
+        </details>
+    `;
+
+    return card;
+}
+
+function applyPredictionFilters() {
+    const container = document.getElementById(
+        "prediction-center-container"
+    );
+
+    if (!container) {
+        return;
+    }
+
+    const search = (
+        document.getElementById(
+            "prediction-search"
+        )?.value || ""
+    ).trim().toLowerCase();
+
+    const signal = (
+        document.getElementById(
+            "prediction-signal-filter"
+        )?.value || ""
+    );
+
+    const risk = (
+        document.getElementById(
+            "prediction-risk-filter"
+        )?.value || ""
+    );
+
+    const minimumConviction = predictionNumber(
+        document.getElementById(
+            "prediction-conviction-filter"
+        )?.value
+    );
+
+    const sortMode = (
+        document.getElementById(
+            "prediction-sort"
+        )?.value || "conviction"
+    );
+
+    const filtered = predictionCenterRows.filter(
+        stock => {
+            const matchesSearch = (
+                !search
+                || String(
+                    stock.symbol || ""
+                ).toLowerCase().includes(search)
+                || String(
+                    stock.name || ""
+                ).toLowerCase().includes(search)
+            );
+
+            const matchesSignal = (
+                !signal
+                || stock.signal === signal
+            );
+
+            const matchesRisk = (
+                !risk
+                || stock.risk_level === risk
+            );
+
+            const matchesConviction = (
+                predictionNumber(
+                    stock.conviction_score
+                ) >= minimumConviction
+            );
+
+            return (
+                matchesSearch
+                && matchesSignal
+                && matchesRisk
+                && matchesConviction
+            );
+        }
+    );
+
+    const sortKeys = {
+        conviction: "conviction_score",
+        confidence: "confidence",
+        return: "expected_return",
+        probability:
+            "prediction_probability_pct",
+        target: "target_price",
+        rvol: "relative_volume",
+    };
+
+    const sortKey = (
+        sortKeys[sortMode]
+        || "conviction_score"
+    );
+
+    filtered.sort(
+        (a, b) => (
+            predictionNumber(b[sortKey])
+            - predictionNumber(a[sortKey])
+        )
+    );
+
+    container.innerHTML = "";
+
+    filtered.forEach((stock, index) => {
+        container.appendChild(
+            buildPredictionCard(stock, index)
+        );
+    });
+
+    if (!filtered.length) {
+        container.innerHTML = `
+            <div class="prediction-empty-state">
+                No predictions match the selected filters.
+            </div>
+        `;
+    }
+
+    const count = document.getElementById(
+        "prediction-visible-count"
+    );
+
+    if (count) {
+        count.textContent = filtered.length;
+    }
+}
+
+function initializePredictionFilters() {
+    const ids = [
+        "prediction-search",
+        "prediction-signal-filter",
+        "prediction-risk-filter",
+        "prediction-conviction-filter",
+        "prediction-sort",
+    ];
+
+    ids.forEach(id => {
+        const element = document.getElementById(id);
+
+        if (!element) {
+            return;
+        }
+
+        element.addEventListener(
+            element.tagName === "INPUT"
+                ? "input"
+                : "change",
+            applyPredictionFilters
+        );
+    });
+
+    const reset = document.getElementById(
+        "prediction-reset"
+    );
+
+    if (reset) {
+        reset.addEventListener("click", () => {
+            ids.forEach(id => {
+                const element = document.getElementById(id);
+
+                if (!element) {
+                    return;
+                }
+
+                if (
+                    id === "prediction-conviction-filter"
+                ) {
+                    element.value = "0";
+                } else if (
+                    id === "prediction-sort"
+                ) {
+                    element.value = "conviction";
+                } else {
+                    element.value = "";
+                }
+            });
+
+            applyPredictionFilters();
+        });
+    }
+}
+
+async function loadPredictionCenter() {
+    const container = document.getElementById(
+        "prediction-center-container"
+    );
+
+    if (!container) {
+        return;
+    }
+
+    const status = document.getElementById(
+        "prediction-center-status"
+    );
+
+    const errorBox = document.getElementById(
+        "prediction-center-error"
+    );
+
+    try {
+        if (status) {
+            status.textContent = "Loading";
+        }
+
+        const response = await fetch(
+            "/api/v11.6.4/prediction-center",
+            {
+                cache: "no-store",
+                headers: {
+                    "Accept": "application/json",
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Prediction Center API returned ${
+                    response.status
+                }`
+            );
+        }
+
+        const payload = await response.json();
+
+        predictionCenterRows = (
+            payload.predictions || []
+        );
+
+        renderMarketRegime(payload);
+        renderPredictionSummary(payload);
+
+        if (errorBox) {
+            errorBox.hidden = true;
+        }
+
+        if (status) {
+            status.textContent =
+                `${predictionCenterRows.length} Live`;
+        }
+
+        applyPredictionFilters();
+
+    } catch (error) {
+        console.error(
+            "Unable to load Prediction Center:",
+            error
+        );
+
+        if (status) {
+            status.textContent = "Unavailable";
+        }
+
+        if (errorBox) {
+            errorBox.hidden = false;
+            errorBox.textContent =
+                "Prediction Center could not be loaded. " +
+                "Please refresh the dashboard.";
+        }
+
+        container.innerHTML = `
+            <div class="prediction-empty-state">
+                Unified predictions are currently unavailable.
+            </div>
+        `;
+    }
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+        initializePredictionFilters();
+        loadPredictionCenter();
+    }
 );
