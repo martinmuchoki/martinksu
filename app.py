@@ -6,6 +6,18 @@ from dotenv import load_dotenv
 from werkzeug.security import check_password_hash
 
 from flask import Flask, render_template, jsonify, request, redirect, send_file, session, url_for, send_from_directory
+
+# BEGIN MIP PRO ZIIDI COPILOT IMPORTS
+from services.ziidi_copilot import (
+    ZiidiTradeError,
+    get_portfolio_summary as get_ziidi_portfolio_summary,
+    get_positions as get_ziidi_positions,
+    get_trade_history as get_ziidi_trade_history,
+    init_ziidi_schema,
+    record_trade as record_ziidi_trade,
+)
+# END MIP PRO ZIIDI COPILOT IMPORTS
+
 from datetime import datetime
 from services.dashboard_engine import build_dashboard
 from services.ai_committee import run_committee
@@ -24,6 +36,8 @@ from services.intelligence_orchestrator import (
     get_prediction_center,
     get_investment_committee,
 )
+from services.signal_service import get_signal_service
+from services.signal_presenter import get_signal_presenter
 from services.predictive_engine import build_predictions
 from services.risk_engine import (
     build_market_risk,
@@ -108,6 +122,11 @@ from services.learning_engine import (
 )
 from services.control_center import get_control_center_status
 
+from services.investment_settings import (
+    get_settings,
+    update_settings,
+)
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("authenticated"):
@@ -172,7 +191,7 @@ def about():
         version="11.5",
     )
 
-VERSION = "11.6.3 Android PWA"
+VERSION = "11.6.4 RC3"
 
 @app.route("/")
 def dashboard():
@@ -199,6 +218,37 @@ def dashboard():
 
     transactions = get_transactions(20)
     cash_summary = get_cash_summary()
+
+    ziidi_summary = get_ziidi_portfolio_summary()
+
+    invested_capital = float(
+        ziidi_summary.get("invested_capital", 0) or 0
+    )
+
+    if isinstance(portfolio, dict):
+        current_market_value = float(
+            portfolio.get("total_value", 0) or 0
+        )
+    else:
+        current_market_value = float(
+            getattr(portfolio, "total_value", 0) or 0
+        )
+
+    cash_summary["portfolio_value"] = current_market_value
+    cash_summary["invested_capital"] = invested_capital
+    cash_summary["unrealized_gain"] = (
+        current_market_value - invested_capital
+    )
+
+    portfolio_return = (
+        (
+            current_market_value - invested_capital
+        )
+        / invested_capital
+        * 100
+        if invested_capital > 0
+        else 0.0
+    )
 
     logo_available = Path(
         "static/images/mip_pro_logo.png"
@@ -241,6 +291,49 @@ def dashboard():
         limit=len(market.get("stocks", [])),
     )
 
+
+    # BEGIN DASHBOARD SIGNAL SERVICE
+    #
+    # The dashboard reads finalized committee decisions from the
+    # persistent SignalRepository through the read-only SignalService.
+    # Failure is isolated so repository availability cannot prevent the
+    # rest of the dashboard from rendering.
+    try:
+        persisted_signals = (
+            get_signal_service()
+            .get_top_signals(limit=10)
+        )
+
+        persisted_signal_summary = (
+            get_signal_service()
+            .get_dashboard_summary(limit=10)
+        )
+
+    except Exception:
+        app.logger.exception(
+            "Dashboard SignalService read failed"
+        )
+
+        persisted_signals = []
+        persisted_signal_summary = {
+            "available": False,
+            "signal_count": 0,
+            "history_count": 0,
+            "average_committee_score": 0,
+            "average_confidence": 0,
+            "decision_counts": {},
+            "signals": [],
+            "top_signal": None,
+        }
+    # END DASHBOARD SIGNAL SERVICE
+
+    persisted_top_signal = (
+        persisted_signals[0]
+        if persisted_signals
+        else None
+    )
+
+
     return render_template(
         "dashboard_v115.html",
         version=VERSION,
@@ -257,6 +350,8 @@ def dashboard():
         system_status="Online",
         transactions=transactions,
         cash_summary=cash_summary,
+        portfolio_return=portfolio_return,
+        summary=ziidi_summary,
         logo_available=logo_available,
         performance=performance,
         learning=learning,
@@ -265,6 +360,9 @@ def dashboard():
         regime=regime,
         sector_rotation=sector_rotation,
         predictions=predictions,
+        persisted_signals=persisted_signals,
+        persisted_top_signal=persisted_top_signal,
+        persisted_signal_summary=persisted_signal_summary,
     )
 
 
@@ -303,8 +401,25 @@ def assistant():
 
 @app.route("/telegram/test")
 def telegram_test():
-    result = send_telegram_alert("Market Intelligence Platform V10.4 test alert: system online.")
-    return jsonify(result)
+    """
+    Send a Telegram digest built exclusively from finalized,
+    persisted AI Investment Committee signals.
+
+    SignalPresenter owns message formatting while
+    send_telegram_alert remains the transport layer.
+    """
+    digest = (
+        get_signal_presenter()
+        .build_telegram_digest(limit=5)
+    )
+
+    result = send_telegram_alert(digest)
+
+    return jsonify({
+        **result,
+        "source": "SignalRepository via SignalService",
+        "signal_format": "persisted_committee_digest",
+    })
 
 
 @app.route("/api/v11.2/market")
@@ -500,6 +615,268 @@ def v114_sectors():
 
 
 
+
+
+# BEGIN MIP PRO ZIIDI COPILOT ROUTES
+@app.route("/ziidi-copilot", methods=["GET", "POST"])
+def ziidi_copilot():
+    from datetime import date
+    from services.investment_settings import (
+        get_settings,
+        update_settings,
+    )
+
+    init_ziidi_schema()
+
+    settings = get_settings()
+
+    message = request.args.get("message", "").strip()
+    error = ""
+
+
+    if (
+        request.method == "POST"
+        and request.form.get("form_action") == "settings"
+    ):
+        try:
+            update_settings(
+                broker=request.form.get(
+                    "broker",
+                    settings.get("broker", "Ziidi"),
+                ),
+                charge_rate=request.form.get(
+                    "charge_rate",
+                    settings.get("charge_rate", 1.5),
+                ),
+                auto_calculate=request.form.get(
+                    "auto_calculate",
+                    "1",
+                ),
+                manual_override=request.form.get(
+                    "manual_override",
+                    "0",
+                ),
+                currency=request.form.get(
+                    "currency",
+                    settings.get("currency", "KES"),
+                ),
+                settlement=request.form.get(
+                    "settlement",
+                    settings.get("settlement", "T+3"),
+                ),
+            )
+
+            return redirect(
+                url_for(
+                    "ziidi_copilot",
+                    message="Investment settings saved successfully.",
+                )
+            )
+        except Exception as exc:
+            app.logger.exception(
+                "Investment settings update failed"
+            )
+            error = (
+                "Investment settings could not be saved. "
+                f"Technical detail: {exc}"
+            )
+
+    if (
+        request.method == "POST"
+        and request.form.get(
+            "form_action",
+            "trade",
+        ) == "trade"
+    ):
+        try:
+            trade = record_ziidi_trade(
+                request.form.to_dict()
+            )
+
+            return redirect(
+                url_for(
+                    "ziidi_copilot",
+                    message=(
+                        f'{trade["side"]} trade for '
+                        f'{trade["quantity"]} '
+                        f'{trade["symbol"]} shares saved.'
+                    ),
+                )
+            )
+        except ZiidiTradeError as exc:
+            error = str(exc)
+        except Exception as exc:
+            app.logger.exception(
+                "Ziidi trade recording failed"
+            )
+            error = (
+                "The trade could not be saved. "
+                f"Technical detail: {exc}"
+            )
+
+    settings = get_settings()
+
+    return render_template(
+        "investment_portfolio.html",
+        investment_settings=settings,
+        today=date.today().isoformat(),
+        message=message,
+        error=error,
+        positions=get_ziidi_positions(),
+        trades=get_ziidi_trade_history(limit=100),
+        summary=get_ziidi_portfolio_summary(),
+        version=VERSION,
+    )
+
+
+
+
+
+
+@app.route("/investment-settings", methods=["GET", "POST"])
+def investment_settings_page():
+    message = None
+    error = None
+
+    if request.method == "POST":
+        try:
+            update_settings(
+                broker=request.form.get(
+                    "broker",
+                    "Ziidi",
+                ),
+                charge_rate=float(
+                    request.form.get(
+                        "charge_rate",
+                        "1.50",
+                    )
+                ),
+                auto_calculate=(
+                    request.form.get(
+                        "auto_calculate",
+                        "1",
+                    ) == "1"
+                ),
+                manual_override=(
+                    request.form.get(
+                        "manual_override",
+                        "0",
+                    ) == "1"
+                ),
+                currency=request.form.get(
+                    "currency",
+                    "KES",
+                ),
+                settlement=request.form.get(
+                    "settlement",
+                    "T+3",
+                ),
+            )
+
+            message = "Investment settings saved successfully."
+
+        except (TypeError, ValueError) as exc:
+            error = str(exc)
+
+        except Exception:
+            app.logger.exception(
+                "Investment settings page update failed"
+            )
+            error = "Investment settings could not be saved."
+
+    return render_template(
+        "investment_settings.html",
+        settings=get_settings(),
+        message=message,
+        error=error,
+        version=VERSION,
+    )
+
+
+@app.route("/api/v12/investment/settings", methods=["GET", "POST"])
+def investment_settings_api():
+    if request.method == "GET":
+        return jsonify(get_settings())
+
+    data = request.get_json(silent=True)
+
+    if data is None:
+        data = request.form.to_dict()
+
+    try:
+        update_settings(
+            broker=str(data.get("broker", "Ziidi")).strip(),
+            charge_rate=float(data.get("charge_rate", 1.50)),
+            auto_calculate=str(
+                data.get("auto_calculate", "1")
+            ).strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+                "enabled",
+            },
+            manual_override=str(
+                data.get("manual_override", "0")
+            ).strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+                "enabled",
+            },
+            currency=str(data.get("currency", "KES")).strip(),
+            settlement=str(data.get("settlement", "T+3")).strip(),
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "settings": get_settings(),
+            }
+        )
+
+    except (TypeError, ValueError) as exc:
+        return jsonify(
+            {
+                "success": False,
+                "error": str(exc),
+            }
+        ), 400
+
+    except Exception as exc:
+        app.logger.exception(
+            "Failed to update investment settings"
+        )
+
+        return jsonify(
+            {
+                "success": False,
+                "error": "Unable to update investment settings.",
+            }
+        ), 500
+
+
+@app.route("/api/v12/ziidi/portfolio")
+def api_v12_ziidi_portfolio():
+    return jsonify(
+        {
+            "summary": get_ziidi_portfolio_summary(),
+            "positions": get_ziidi_positions(),
+        }
+    )
+
+
+@app.route("/api/v12/ziidi/trades")
+def api_v12_ziidi_trades():
+    return jsonify(
+        {
+            "trades": get_ziidi_trade_history(
+                limit=200
+            )
+        }
+    )
+# END MIP PRO ZIIDI COPILOT ROUTES
 
 @app.route("/download_report")
 def download_report():
@@ -742,6 +1119,155 @@ def v117_investment_committee():
 
 
 
+
+# ============================================================
+# BEGIN MIP PRO SIGNAL SERVICE API
+# ============================================================
+
+@app.route("/api/v12/signals")
+def v12_signals():
+    """
+    Return finalized persisted committee signals.
+
+    Authentication is enforced by the application-wide
+    require_authentication before-request handler.
+    """
+
+    try:
+        limit = request.args.get(
+            "limit",
+            default=20,
+            type=int,
+        )
+
+        signals = (
+            get_signal_service()
+            .get_latest_signals(limit=limit)
+        )
+
+        return jsonify({
+            "version": "MIP PRO Signal API 1.0",
+            "source": "signal_service",
+            "count": len(signals),
+            "signals": signals,
+        })
+
+    except Exception as exc:
+        app.logger.exception(
+            "Signal API latest-signals request failed"
+        )
+
+        return jsonify({
+            "error": "signals_failed",
+            "message": str(exc),
+        }), 500
+
+
+@app.route("/api/v12/signals/top")
+def v12_top_signals():
+    """Return the highest-ranked persisted signals."""
+
+    try:
+        limit = request.args.get(
+            "limit",
+            default=10,
+            type=int,
+        )
+
+        signals = (
+            get_signal_service()
+            .get_top_signals(limit=limit)
+        )
+
+        return jsonify({
+            "version": "MIP PRO Signal API 1.0",
+            "source": "signal_service",
+            "count": len(signals),
+            "signals": signals,
+        })
+
+    except Exception as exc:
+        app.logger.exception(
+            "Signal API top-signals request failed"
+        )
+
+        return jsonify({
+            "error": "top_signals_failed",
+            "message": str(exc),
+        }), 500
+
+
+@app.route("/api/v12/signals/summary")
+def v12_signal_summary():
+    """Return repository-backed signal statistics."""
+
+    try:
+        limit = request.args.get(
+            "limit",
+            default=20,
+            type=int,
+        )
+
+        return jsonify(
+            get_signal_service().get_dashboard_summary(
+                limit=limit,
+            )
+        )
+
+    except Exception as exc:
+        app.logger.exception(
+            "Signal API summary request failed"
+        )
+
+        return jsonify({
+            "error": "signal_summary_failed",
+            "message": str(exc),
+        }), 500
+
+
+@app.route("/api/v12/signals/<symbol>")
+def v12_signal_by_symbol(symbol):
+    """Return the persisted signal for one NSE symbol."""
+
+    normalized_symbol = str(
+        symbol or ""
+    ).strip().upper()
+
+    try:
+        signal = (
+            get_signal_service()
+            .get_signal(normalized_symbol)
+        )
+
+        if signal is None:
+            return jsonify({
+                "error": "signal_not_found",
+                "symbol": normalized_symbol,
+            }), 404
+
+        return jsonify({
+            "version": "MIP PRO Signal API 1.0",
+            "source": "signal_service",
+            "signal": signal,
+        })
+
+    except Exception as exc:
+        app.logger.exception(
+            "Signal API lookup failed for %s",
+            normalized_symbol,
+        )
+
+        return jsonify({
+            "error": "signal_lookup_failed",
+            "symbol": normalized_symbol,
+            "message": str(exc),
+        }), 500
+
+
+# ============================================================
+# END MIP PRO SIGNAL SERVICE API
+# ============================================================
+
 # ============================================================
 # BEGIN MIP PRO INTELLIGENCE ANALYTICS API
 # ============================================================
@@ -825,3 +1351,266 @@ if __name__ == "__main__":
         port=5000,
         debug=True,
     )
+
+# ============================================================
+# PHASE 8.4D CONSENSUS INTELLIGENCE
+# ============================================================
+
+@app.route("/api/v12/consensus-intelligence", methods=["GET"])
+def api_v12_consensus_intelligence():
+    """
+    Return persisted AI Investment Committee consensus analytics.
+
+    Phase 8.4D:
+    - summary metrics
+    - consensus distribution
+    - risk veto totals
+    - latest per-symbol consensus decisions
+    """
+    try:
+        from flask import jsonify
+        from services.signal_repository import get_signal_repository
+
+        repository = get_signal_repository()
+        signals = repository.get_all_signals()
+
+        if not isinstance(signals, list):
+            signals = []
+
+        def safe_float(value, default=0.0):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        def safe_int(value, default=0):
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return default
+
+        def normalize_alignment(value):
+            alignment = str(value or "UNKNOWN").strip().upper()
+
+            aliases = {
+                "HIGH": "STRONG",
+                "STRONG CONSENSUS": "STRONG",
+                "MEDIUM": "MODERATE",
+                "MODERATE CONSENSUS": "MODERATE",
+                "LOW": "WEAK",
+                "WEAK CONSENSUS": "WEAK",
+            }
+
+            return aliases.get(alignment, alignment)
+
+        consensus_rows = []
+        alignment_counts = {
+            "STRONG": 0,
+            "MODERATE": 0,
+            "WEAK": 0,
+            "UNKNOWN": 0,
+        }
+
+        risk_veto_count = 0
+        consensus_scores = []
+
+        for signal in signals:
+            if not isinstance(signal, dict):
+                continue
+
+            symbol = str(signal.get("symbol") or "").strip()
+
+            if not symbol:
+                continue
+
+            alignment = normalize_alignment(
+                signal.get("consensus_alignment")
+            )
+
+            if alignment not in alignment_counts:
+                alignment_counts[alignment] = 0
+
+            alignment_counts[alignment] += 1
+
+            risk_veto = bool(
+                signal.get("consensus_risk_veto", False)
+            )
+
+            if risk_veto:
+                risk_veto_count += 1
+
+            consensus_score = safe_float(
+                signal.get("consensus_score"),
+                0.0,
+            )
+
+            consensus_scores.append(consensus_score)
+
+            conflicting = signal.get(
+                "conflicting_committees",
+                [],
+            )
+
+            if not isinstance(conflicting, list):
+                conflicting = []
+
+            consensus_rows.append(
+                {
+                    "symbol": symbol,
+                    "decision": str(
+                        signal.get("decision")
+                        or signal.get("signal")
+                        or "HOLD"
+                    ).strip().upper(),
+                    "consensus_formula_version":
+                        signal.get(
+                            "consensus_formula_version",
+                            "8.4",
+                        ),
+                    "consensus_score":
+                        round(consensus_score, 2),
+                    "consensus_alignment":
+                        alignment,
+                    "consensus_confidence":
+                        round(
+                            safe_float(
+                                signal.get(
+                                    "consensus_confidence"
+                                ),
+                                0.0,
+                            ),
+                            2,
+                        ),
+                    "consensus_conviction":
+                        str(
+                            signal.get(
+                                "consensus_conviction"
+                            )
+                            or "UNKNOWN"
+                        ).strip().upper(),
+                    "decision_stability":
+                        str(
+                            signal.get(
+                                "decision_stability"
+                            )
+                            or "UNKNOWN"
+                        ).strip().upper(),
+                    "committee_agreement":
+                        safe_int(
+                            signal.get(
+                                "committee_agreement"
+                            ),
+                            0,
+                        ),
+                    "committee_disagreement":
+                        safe_int(
+                            signal.get(
+                                "committee_disagreement"
+                            ),
+                            0,
+                        ),
+                    "committee_total":
+                        safe_int(
+                            signal.get(
+                                "committee_agreement"
+                            ),
+                            0,
+                        )
+                        + safe_int(
+                            signal.get(
+                                "committee_disagreement"
+                            ),
+                            0,
+                        ),
+                    "consensus_risk_veto":
+                        risk_veto,
+                    "conflicting_committees":
+                        conflicting,
+                    "consensus_explanation":
+                        str(
+                            signal.get(
+                                "consensus_explanation"
+                            )
+                            or ""
+                        ).strip(),
+                    "timestamp":
+                        signal.get("timestamp"),
+                    "stored_at":
+                        signal.get("stored_at"),
+                }
+            )
+
+        consensus_rows.sort(
+            key=lambda item: (
+                item.get("consensus_score", 0.0),
+                item.get("consensus_confidence", 0.0),
+            ),
+            reverse=True,
+        )
+
+        average_score = (
+            sum(consensus_scores) / len(consensus_scores)
+            if consensus_scores
+            else 0.0
+        )
+
+        return jsonify(
+            {
+                "version":
+                    "12.0 Consensus Intelligence API",
+                "phase":
+                    "8.4D",
+                "status":
+                    "ok",
+                "stock_count":
+                    len(consensus_rows),
+                "summary": {
+                    "average_consensus_score":
+                        round(average_score, 2),
+                    "strong_consensus_count":
+                        alignment_counts.get(
+                            "STRONG",
+                            0,
+                        ),
+                    "moderate_consensus_count":
+                        alignment_counts.get(
+                            "MODERATE",
+                            0,
+                        ),
+                    "weak_consensus_count":
+                        alignment_counts.get(
+                            "WEAK",
+                            0,
+                        ),
+                    "risk_veto_count":
+                        risk_veto_count,
+                    "alignment_distribution":
+                        alignment_counts,
+                },
+                "signals":
+                    consensus_rows,
+            }
+        )
+
+    except Exception as exc:
+        app.logger.exception(
+            "Phase 8.4D consensus intelligence failed"
+        )
+
+        return jsonify(
+            {
+                "version":
+                    "12.0 Consensus Intelligence API",
+                "phase":
+                    "8.4D",
+                "status":
+                    "error",
+                "error":
+                    str(exc),
+                "stock_count":
+                    0,
+                "summary": {},
+                "signals": [],
+            }
+        ), 500
+
