@@ -6,7 +6,6 @@ from typing import Any, Dict, List
 from zoneinfo import ZoneInfo
 
 from services.prediction_center import build_prediction_center
-from services.consensus_engine import analyse_consensus
 
 
 KENYA_TIMEZONE = ZoneInfo("Africa/Nairobi")
@@ -111,6 +110,17 @@ def _build_consensus(
         _decision_direction(agent.get("decision"))
         for agent in agents
     )
+
+    analytics = {
+        "strength_index":
+            _institutional_strength_index(locals()),
+        "trend":
+            _institutional_trend(locals()),
+        "flow_quality":
+            _flow_quality(locals()),
+        "risk_flags":
+            _portfolio_risk_flags(locals()),
+    }
 
     return {
         "final_direction": final_direction,
@@ -678,6 +688,8 @@ def _institutional_quality(
     return "VERY WEAK"
 
 
+
+
 def _institutional_strength_index(vote):
     score = _safe_float(vote.get("score"),50)
     liquidity = _safe_float(vote.get("liquidity_score"),50)
@@ -693,6 +705,7 @@ def _institutional_strength_index(vote):
 
     return round(_clamp(index),2)
 
+
 def _institutional_trend(vote):
 
     persistence = _safe_float(
@@ -707,6 +720,7 @@ def _institutional_trend(vote):
         return "STABLE"
 
     return "WEAKENING"
+
 
 def _flow_quality(vote):
 
@@ -726,6 +740,7 @@ def _flow_quality(vote):
 
     return "WEAK"
 
+
 def _portfolio_risk_flags(vote):
 
     flags=[]
@@ -743,7 +758,6 @@ def _portfolio_risk_flags(vote):
         flags.append("INCONSISTENT_FLOW")
 
     return flags
-
 
 def _institutional_vote(
     profile: Dict[str, Any],
@@ -847,7 +861,7 @@ def _institutional_vote(
             "Institutional participation is neutral"
         )
 
-    vote = {
+    return {
         "name": "Institutional Flow Analyst",
         "role": "Institutional Intelligence",
         "score": round(score, 2),
@@ -881,43 +895,17 @@ def _institutional_vote(
             abnormal["classification"],
         "volume_z_score": abnormal["z_score"],
         "score_components": score_components,
-        "formula_version": "8.3",
-    }
-
-    analytics = {
-        "strength_index":
-            _institutional_strength_index(vote),
-        "trend":
-            _institutional_trend(vote),
+        "formula_version":"8.3B",
+        "analytics":analytics,
+        "institutional_strength_index":
+            analytics["strength_index"],
+        "institutional_trend":
+            analytics["trend"],
         "flow_quality":
-            _flow_quality(vote),
+            analytics["flow_quality"],
         "risk_flags":
-            _portfolio_risk_flags(vote),
+            analytics["risk_flags"],
     }
-
-    vote["formula_version"] = "8.3B"
-    vote["analytics"] = analytics
-
-    vote["institutional_strength_index"] = (
-        analytics["strength_index"]
-    )
-    vote["institutional_trend"] = (
-        analytics["trend"]
-    )
-    vote["flow_quality"] = (
-        analytics["flow_quality"]
-    )
-    vote["risk_flags"] = (
-        analytics["risk_flags"]
-    )
-    vote["risk_flag_count"] = len(
-        analytics["risk_flags"]
-    )
-    vote["has_institutional_risk_flags"] = bool(
-        analytics["risk_flags"]
-    )
-
-    return vote
 
 
 
@@ -1333,109 +1321,6 @@ def build_committee_decision(
         final_decision,
     )
 
-    # Phase 8.4A consensus intelligence integration
-    phase84_votes: Dict[str, Dict[str, Any]] = {}
-
-    for agent in agents:
-        role = str(
-            agent.get("role")
-            or "Unknown Committee"
-        )
-
-        direction = _decision_direction(
-            agent.get("decision")
-        )
-
-        phase84_signal = {
-            "BULLISH": "BUY",
-            "BEARISH": "SELL",
-        }.get(
-            direction,
-            "HOLD",
-        )
-
-        phase84_votes[role] = {
-            "score": _safe_float(
-                agent.get("score"),
-                50.0,
-            ),
-            "signal": phase84_signal,
-            "weight": weights.get(
-                role,
-                0.0,
-            ),
-        }
-
-    final_direction = _decision_direction(
-        final_decision
-    )
-
-    phase84_final_signal = {
-        "BULLISH": "BUY",
-        "BEARISH": "SELL",
-    }.get(
-        final_direction,
-        "HOLD",
-    )
-
-    phase84_consensus = analyse_consensus(
-        votes=phase84_votes,
-        weighted_score=final_score,
-        decision=phase84_final_signal,
-    )
-
-    # Retain all legacy consensus fields while adding
-    # the new Phase 8.4 analytics.
-    consensus.update(
-        {
-            "phase_8_4": phase84_consensus,
-            "formula_version_8_4":
-                phase84_consensus[
-                    "formula_version"
-                ],
-            "consensus_score":
-                phase84_consensus[
-                    "consensus_score"
-                ],
-            "alignment":
-                phase84_consensus[
-                    "alignment"
-                ],
-            "calibrated_confidence":
-                phase84_consensus[
-                    "calibrated_confidence"
-                ],
-            "conviction":
-                phase84_consensus[
-                    "conviction"
-                ],
-            "stability":
-                phase84_consensus[
-                    "stability"
-                ],
-            "risk_veto":
-                phase84_consensus[
-                    "risk_veto"
-                ],
-            "conflicting_committees":
-                phase84_consensus[
-                    "conflicting_committees"
-                ],
-            "committee_agreement":
-                phase84_consensus[
-                    "committee_agreement"
-                ],
-            "committee_disagreement":
-                phase84_consensus[
-                    "committee_disagreement"
-                ],
-            "explanation":
-                phase84_consensus[
-                    "explanation"
-                ],
-        }
-    )
-
 
     confidence_calibration = _calculate_confidence(
         profile=profile,
@@ -1452,46 +1337,6 @@ def build_committee_decision(
             if reason not in reasons:
                 reasons.append(reason)
 
-    # Phase 12.4C.1:
-    # Publish institutional and liquidity intelligence at the
-    # committee-decision top level so downstream normalizers and
-    # the AI CIO policy adapter do not lose valid nested scores.
-    institutional_agent = next(
-        (
-            agent
-            for agent in agents
-            if str(agent.get("role", "")).strip()
-            == "Institutional Intelligence"
-        ),
-        {},
-    )
-
-    institutional_score = _clamp(
-        _safe_float(
-            institutional_agent.get("score"),
-            confidence_calibration
-            .get("inputs", {})
-            .get("institutional_score", 0.0),
-        )
-    )
-
-    volume_score = _clamp(
-        _safe_float(
-            institutional_agent.get("relative_volume_score"),
-            institutional_agent.get(
-                "abnormal_volume_score",
-                0.0,
-            ),
-        )
-    )
-
-    liquidity_score = _clamp(
-        _safe_float(
-            institutional_agent.get("liquidity_score"),
-            0.0,
-        )
-    )
-
     return {
         "symbol": profile.get("symbol"),
         "name": profile.get("name"),
@@ -1502,52 +1347,6 @@ def build_committee_decision(
         "raw_confidence": confidence_calibration["raw_confidence"],
         "confidence_risk_penalty": confidence_calibration["risk_penalty"],
         "consensus": consensus,
-
-        # Phase 8.4A flattened consensus analytics
-        "consensus_formula_version":
-            phase84_consensus[
-                "formula_version"
-            ],
-        "consensus_score":
-            phase84_consensus[
-                "consensus_score"
-            ],
-        "consensus_alignment":
-            phase84_consensus[
-                "alignment"
-            ],
-        "consensus_confidence":
-            phase84_consensus[
-                "calibrated_confidence"
-            ],
-        "consensus_conviction":
-            phase84_consensus[
-                "conviction"
-            ],
-        "decision_stability":
-            phase84_consensus[
-                "stability"
-            ],
-        "consensus_risk_veto":
-            phase84_consensus[
-                "risk_veto"
-            ],
-        "conflicting_committees":
-            phase84_consensus[
-                "conflicting_committees"
-            ],
-        "committee_agreement":
-            phase84_consensus[
-                "committee_agreement"
-            ],
-        "committee_disagreement":
-            phase84_consensus[
-                "committee_disagreement"
-            ],
-        "consensus_explanation":
-            phase84_consensus[
-                "explanation"
-            ],
         "consensus_count": consensus["aligned_count"],
         "consensus_pct": consensus["agreement_pct"],
         "agreement_pct": consensus["agreement_pct"],
@@ -1573,21 +1372,6 @@ def build_committee_decision(
             profile.get("risk_level"),
         "institutional_signal":
             profile.get("institutional_signal"),
-
-        # Phase 12.4C.1 flattened intelligence contract
-        "institutional_score": round(
-            institutional_score,
-            2,
-        ),
-        "volume_score": round(
-            volume_score,
-            2,
-        ),
-        "liquidity_score": round(
-            liquidity_score,
-            2,
-        ),
-
         "agents": agents,
         "reasons": reasons[:8],
     }
@@ -1641,7 +1425,6 @@ def build_ai_investment_committee(
             KENYA_TIMEZONE
         ).isoformat(),
         "market_regime": market_regime,
-        "stock_count": len(profiles),
         "decision_count": len(decisions),
         "summary": {
             "strong_buy_count":

@@ -343,30 +343,62 @@ def build_institutional_profile(
     volume_rank: int = 99,
     advancing_percentage: float = 50.0,
 ) -> Dict[str, Any]:
+    """
+    Add market context and presentation metadata.
+
+    Canonical institutional analytics are owned by
+    services.institutional_volume.classify_stock().
+
+    This function must not overwrite statistical decisions already
+    present in the stock profile.
+    """
+    result = dict(stock)
+
     ai_score = _safe_float(
-        stock.get("score"),
-        _safe_float(stock.get("ai_score"), 50.0),
+        result.get("score"),
+        _safe_float(
+            result.get("ai_score"),
+            50.0,
+        ),
     )
 
     relative_volume = _safe_float(
-        stock.get("relative_volume"),
+        result.get("relative_volume"),
         0.0,
     )
 
     volume = _safe_int(
-        stock.get("volume"),
+        result.get("volume"),
         0,
     )
 
     change_pct = _safe_float(
-        stock.get("change_pct"),
-        0.0,
+        result.get("change_pct"),
+        _safe_float(
+            result.get("change_percent"),
+            0.0,
+        ),
     )
 
-    trend = stock.get("trend") or "Neutral"
-    momentum = stock.get("momentum") or "Normal"
+    trend = result.get("trend") or "Neutral"
+    momentum = result.get("momentum") or "Normal"
 
-    components = {
+    safe_volume_rank = _safe_int(
+        volume_rank,
+        99,
+    )
+
+    if safe_volume_rank <= 0:
+        safe_volume_rank = 99
+
+    safe_advancing_percentage = _clamp(
+        _safe_float(
+            advancing_percentage,
+            50.0,
+        )
+    )
+
+    presentation_components = {
         "ai_score_points": round(
             _clamp(ai_score) * 0.40,
             2,
@@ -384,57 +416,178 @@ def build_institutional_profile(
         "liquidity_points": _liquidity_points(
             volume
         ),
-        "price_change_points":
-            _price_change_points(change_pct),
-        "market_breadth_points":
+        "price_change_points": (
+            _price_change_points(
+                change_pct
+            )
+        ),
+        "market_breadth_points": (
             _breadth_points(
                 change_pct,
-                advancing_percentage,
-            ),
-        "volume_rank_points":
-            _volume_rank_points(volume_rank),
+                safe_advancing_percentage,
+            )
+        ),
+        "volume_rank_points": (
+            _volume_rank_points(
+                safe_volume_rank
+            )
+        ),
     }
 
-    confidence = round(
-        _clamp(sum(components.values()))
+    presentation_score = round(
+        _clamp(
+            sum(
+                presentation_components.values()
+            )
+        )
     )
 
-    classification = _classification(
-        confidence
+    result["volume_rank"] = safe_volume_rank
+
+    result["market_advancing_percentage"] = round(
+        safe_advancing_percentage,
+        2,
     )
 
-    reasons = _build_reasons(
-        ai_score=ai_score,
-        relative_volume=relative_volume,
-        trend=trend,
-        momentum=momentum,
-        change_pct=change_pct,
-        volume_rank=volume_rank,
-        volume=volume,
+    result["presentation_score"] = (
+        presentation_score
     )
 
-    result = dict(stock)
+    result["presentation_score_components"] = (
+        presentation_components
+    )
 
-    result.update({
-        "institutional_confidence":
-            confidence,
-        "confidence": confidence,
-        "institutional_signal":
-            classification["signal"],
-        "signal":
-            classification["signal"],
-        "institutional_badge":
-            classification["badge"],
-        "badge":
-            classification["badge"],
-        "signal_class":
-            classification["signal_class"],
-        "institutional_reasons":
-            reasons,
-        "score_components":
-            components,
-        "volume_rank":
-            volume_rank,
-    })
+    result["market_breadth_points"] = (
+        presentation_components[
+            "market_breadth_points"
+        ]
+    )
+
+    result["volume_rank_points"] = (
+        presentation_components[
+            "volume_rank_points"
+        ]
+    )
+
+    # Backward compatibility only.
+    result.setdefault(
+        "score_components",
+        presentation_components,
+    )
+
+    # Fallbacks apply only when classify_stock() was bypassed.
+    canonical_confidence = result.get(
+        "institutional_confidence"
+    )
+
+    if canonical_confidence is None:
+        canonical_confidence = result.get(
+            "confidence"
+        )
+
+    if canonical_confidence is None:
+        canonical_confidence = presentation_score
+
+    result.setdefault(
+        "institutional_confidence",
+        canonical_confidence,
+    )
+
+    result.setdefault(
+        "confidence",
+        canonical_confidence,
+    )
+
+    canonical_signal = result.get(
+        "institutional_signal"
+    )
+
+    if not canonical_signal:
+        canonical_signal = result.get(
+            "signal"
+        )
+
+    fallback_classification = None
+
+    if not canonical_signal:
+        fallback_classification = _classification(
+            presentation_score
+        )
+
+        canonical_signal = (
+            fallback_classification["signal"]
+        )
+
+    result.setdefault(
+        "institutional_signal",
+        canonical_signal,
+    )
+
+    result.setdefault(
+        "signal",
+        canonical_signal,
+    )
+
+    canonical_badge = result.get(
+        "institutional_badge"
+    )
+
+    if not canonical_badge:
+        canonical_badge = result.get(
+            "badge"
+        )
+
+    if (
+        not canonical_badge
+        and fallback_classification
+    ):
+        canonical_badge = (
+            fallback_classification["badge"]
+        )
+
+    if canonical_badge:
+        result.setdefault(
+            "institutional_badge",
+            canonical_badge,
+        )
+
+        result.setdefault(
+            "badge",
+            canonical_badge,
+        )
+
+    if not result.get("signal_class"):
+        if fallback_classification:
+            result["signal_class"] = (
+                fallback_classification[
+                    "signal_class"
+                ]
+            )
+        else:
+            result["signal_class"] = (
+                "watchlist"
+            )
+
+    result.setdefault(
+        "institutional_reasons",
+        _build_reasons(
+            ai_score=ai_score,
+            relative_volume=relative_volume,
+            trend=trend,
+            momentum=momentum,
+            change_pct=change_pct,
+            volume_rank=safe_volume_rank,
+            volume=volume,
+        ),
+    )
+
+    result.setdefault(
+        "explanation",
+        result.get(
+            "institutional_reasons",
+            [],
+        ),
+    )
 
     return result
+

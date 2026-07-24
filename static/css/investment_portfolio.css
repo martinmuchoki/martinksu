@@ -1,0 +1,603 @@
+:root {
+    --bg-main: #07111f;
+    --bg-card: #0f1c2d;
+    --bg-card-soft: #132238;
+    --bg-input: #091525;
+    --border: rgba(148, 163, 184, 0.22);
+    --border-strong: rgba(148, 163, 184, 0.38);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #22c55e;
+    --accent-dark: #14532d;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --buy: #22c55e;
+    --sell: #ef4444;
+    --radius: 16px;
+    --shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+    background: var(--bg-main);
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(37, 99, 235, 0.13),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at top right,
+            rgba(34, 197, 94, 0.08),
+            transparent 25%
+        ),
+        var(--bg-main);
+    color: var(--text-main);
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+a {
+    color: inherit;
+}
+
+.portfolio-page {
+    width: min(100%, 1580px);
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.portfolio-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(15, 28, 45, 0.88);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+}
+
+.portfolio-title {
+    min-width: 0;
+}
+
+.portfolio-eyebrow,
+.panel-kicker {
+    display: inline-block;
+    margin-bottom: 7px;
+    color: var(--accent);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.portfolio-title h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 3vw, 2.7rem);
+    line-height: 1.08;
+}
+
+.portfolio-title p {
+    max-width: 720px;
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.portfolio-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.portfolio-navigation a {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: rgba(9, 21, 37, 0.72);
+    color: #dbeafe;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+
+.portfolio-navigation a:hover {
+    transform: translateY(-1px);
+    border-color: rgba(34, 197, 94, 0.55);
+    background: rgba(20, 83, 45, 0.3);
+}
+
+.portfolio-alert {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-radius: 11px;
+    font-weight: 700;
+}
+
+.portfolio-alert-success {
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    background: rgba(20, 83, 45, 0.42);
+    color: #bbf7d0;
+}
+
+.portfolio-alert-error {
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    background: rgba(127, 29, 29, 0.42);
+    color: #fecaca;
+}
+
+.portfolio-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.summary-card {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(19, 34, 56, 0.98),
+            rgba(10, 24, 41, 0.98)
+        );
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+}
+
+.summary-card span {
+    display: block;
+    margin-bottom: 9px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.summary-card strong {
+    display: block;
+    overflow: hidden;
+    color: var(--text-main);
+    font-size: clamp(1rem, 1.6vw, 1.28rem);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.positive {
+    color: #4ade80 !important;
+}
+
+.negative {
+    color: #f87171 !important;
+}
+
+.portfolio-workspace {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(520px, 1.3fr);
+    gap: 22px;
+    align-items: stretch;
+    margin-bottom: 22px;
+}
+
+.portfolio-panel,
+.portfolio-section {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(15, 28, 45, 0.96);
+    box-shadow: var(--shadow);
+}
+
+.portfolio-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 22px;
+}
+
+.panel-heading,
+.section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.panel-heading h2,
+.section-heading h2 {
+    margin: 0;
+    font-size: 1.22rem;
+}
+
+.panel-heading p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.portfolio-form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.settings-form .form-grid {
+    grid-template-columns: 1fr;
+}
+
+.form-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.form-field > span {
+    color: #dbe5f3;
+    font-size: 0.84rem;
+    font-weight: 750;
+}
+
+.form-field-wide {
+    grid-column: 1 / -1;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    outline: none;
+    background: var(--bg-input);
+    color: var(--text-main);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.form-field textarea {
+    min-height: 88px;
+    resize: vertical;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    border-color: rgba(34, 197, 94, 0.7);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+
+.form-field input[readonly] {
+    cursor: not-allowed;
+    background: rgba(2, 6, 23, 0.5);
+    color: #a5b4c7;
+}
+
+.form-actions {
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+.button {
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    font-weight: 850;
+    transition:
+        transform 0.2s ease,
+        filter 0.2s ease;
+}
+
+.button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.07);
+}
+
+.button-primary {
+    background: var(--accent);
+    color: #052e16;
+}
+
+.button-secondary {
+    border: 1px solid rgba(59, 130, 246, 0.45);
+    background: rgba(30, 64, 175, 0.42);
+    color: #dbeafe;
+}
+
+.trade-side-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9px;
+    margin-bottom: 18px;
+}
+
+.trade-side-selector label {
+    cursor: pointer;
+}
+
+.trade-side-selector input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.trade-side-selector span {
+    display: flex;
+    min-height: 43px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: rgba(9, 21, 37, 0.75);
+    color: var(--text-muted);
+    font-weight: 850;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.trade-side-selector input[value="BUY"]:checked + span {
+    border-color: rgba(34, 197, 94, 0.7);
+    background: rgba(20, 83, 45, 0.6);
+    color: #bbf7d0;
+}
+
+.trade-side-selector input[value="SELL"]:checked + span {
+    border-color: rgba(239, 68, 68, 0.7);
+    background: rgba(127, 29, 29, 0.55);
+    color: #fecaca;
+}
+
+.trade-calculation-preview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(2, 6, 23, 0.35);
+}
+
+.trade-calculation-preview div {
+    min-width: 0;
+}
+
+.trade-calculation-preview span {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.trade-calculation-preview strong {
+    display: block;
+    overflow: hidden;
+    font-size: 0.98rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portfolio-section {
+    margin-bottom: 22px;
+    padding: 22px;
+}
+
+.section-count {
+    padding: 7px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(9, 21, 37, 0.75);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 750;
+}
+
+.portfolio-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.portfolio-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+}
+
+.portfolio-table th,
+.portfolio-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.portfolio-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #132238;
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.portfolio-table td {
+    color: #dbe5f3;
+    font-size: 0.88rem;
+}
+
+.portfolio-table tbody tr:nth-child(even) {
+    background: rgba(2, 6, 23, 0.2);
+}
+
+.portfolio-table tbody tr:hover {
+    background: rgba(30, 64, 175, 0.12);
+}
+
+.trade-badge {
+    display: inline-flex;
+    min-width: 54px;
+    justify-content: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 850;
+}
+
+.trade-badge-buy {
+    background: rgba(20, 83, 45, 0.55);
+    color: #bbf7d0;
+}
+
+.trade-badge-sell {
+    background: rgba(127, 29, 29, 0.55);
+    color: #fecaca;
+}
+
+.portfolio-empty-state {
+    padding: 28px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 12px;
+    background: rgba(2, 6, 23, 0.24);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.portfolio-footer {
+    padding: 10px 0 20px;
+    color: #64748b;
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+@media (max-width: 1280px) {
+    .portfolio-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .portfolio-workspace {
+        grid-template-columns: minmax(300px, 0.85fr) minmax(460px, 1.15fr);
+    }
+}
+
+@media (max-width: 1000px) {
+    .portfolio-header {
+        flex-direction: column;
+    }
+
+    .portfolio-navigation {
+        justify-content: flex-start;
+    }
+
+    .portfolio-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-form .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .portfolio-page {
+        padding: 13px;
+    }
+
+    .portfolio-header,
+    .portfolio-panel,
+    .portfolio-section {
+        padding: 17px;
+    }
+
+    .portfolio-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .form-grid,
+    .settings-form .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-field-wide {
+        grid-column: auto;
+    }
+
+    .trade-calculation-preview {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 460px) {
+    .portfolio-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-navigation {
+        display: grid;
+        width: 100%;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .portfolio-navigation a {
+        text-align: center;
+    }
+
+    .section-heading {
+        flex-direction: column;
+    }
+}

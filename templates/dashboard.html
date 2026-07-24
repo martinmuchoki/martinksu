@@ -1055,11 +1055,2197 @@
         <a class="button" href="/download_report">Download Report</a>
     </section>
 
+<!-- ========================================================
+     PHASE 8.4D CONSENSUS INTELLIGENCE
+========================================================= -->
+<style>
+    .consensus-intelligence-panel {
+        margin-top: 24px;
+        padding: 20px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.96);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.20);
+    }
+
+    .consensus-intelligence-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+    }
+
+    .consensus-intelligence-header h2 {
+        margin: 0;
+        color: #f8fafc;
+        font-size: 1.35rem;
+    }
+
+    .consensus-intelligence-header p {
+        margin: 6px 0 0;
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+
+    .consensus-refresh-button {
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        background: rgba(14, 165, 233, 0.14);
+        color: #7dd3fc;
+        border-radius: 8px;
+        padding: 8px 14px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .consensus-summary-grid {
+        display: grid;
+        grid-template-columns:
+            repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .consensus-summary-card {
+        padding: 14px;
+        border-radius: 10px;
+        background: rgba(30, 41, 59, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .consensus-summary-label {
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .consensus-summary-value {
+        margin-top: 7px;
+        color: #f8fafc;
+        font-size: 1.35rem;
+        font-weight: 700;
+    }
+
+    .consensus-table-wrapper {
+        overflow-x: auto;
+        border-radius: 10px;
+    }
+
+    .consensus-table {
+        width: 100%;
+        min-width: 1150px;
+        border-collapse: collapse;
+        color: #e2e8f0;
+    }
+
+    .consensus-table th,
+    .consensus-table td {
+        padding: 11px 10px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.82rem;
+    }
+
+    .consensus-table th {
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.72rem;
+        background: rgba(15, 23, 42, 0.86);
+        position: sticky;
+        top: 0;
+    }
+
+    .consensus-symbol {
+        font-weight: 700;
+        color: #f8fafc;
+    }
+
+    .consensus-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .consensus-strong {
+        color: #86efac;
+        background: rgba(34, 197, 94, 0.14);
+    }
+
+    .consensus-moderate {
+        color: #fde68a;
+        background: rgba(245, 158, 11, 0.14);
+    }
+
+    .consensus-weak,
+    .consensus-veto {
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.14);
+    }
+
+    .consensus-neutral {
+        color: #cbd5e1;
+        background: rgba(148, 163, 184, 0.14);
+    }
+
+    .consensus-explanation {
+        max-width: 390px;
+        color: #cbd5e1;
+        line-height: 1.42;
+        white-space: normal;
+    }
+
+    .consensus-loading,
+    .consensus-error {
+        padding: 18px;
+        color: #94a3b8;
+        text-align: center;
+    }
+
+    .consensus-error {
+        color: #fca5a5;
+    }
+
+    @media (max-width: 768px) {
+        .consensus-intelligence-panel {
+            padding: 14px;
+        }
+
+        .consensus-summary-grid {
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+        }
+    }
+</style>
+
+<section
+    id="consensus-intelligence-panel"
+    class="consensus-intelligence-panel"
+>
+    <div class="consensus-intelligence-header">
+        <div>
+            <h2>Consensus Intelligence</h2>
+            <p>
+                AI Investment Committee agreement,
+                conviction, stability and risk-veto analysis
+            </p>
+        </div>
+
+        <button
+            type="button"
+            class="consensus-refresh-button"
+            onclick="loadConsensusIntelligence()"
+        >
+            Refresh
+        </button>
+    </div>
+
+    <div
+        id="consensus-summary-grid"
+        class="consensus-summary-grid"
+    ></div>
+
+    <div class="consensus-table-wrapper">
+        <table class="consensus-table">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Decision</th>
+                    <th>Score</th>
+                    <th>Alignment</th>
+                    <th>Confidence</th>
+                    <th>Conviction</th>
+                    <th>Stability</th>
+                    <th>Agreement</th>
+                    <th>Risk Veto</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+
+            <tbody id="consensus-table-body">
+                <tr>
+                    <td
+                        colspan="10"
+                        class="consensus-loading"
+                    >
+                        Loading consensus intelligence...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+(function () {
+    "use strict";
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function badgeClass(alignment) {
+        const value = String(alignment || "").toUpperCase();
+
+        if (value === "STRONG") {
+            return "consensus-strong";
+        }
+
+        if (value === "MODERATE") {
+            return "consensus-moderate";
+        }
+
+        if (value === "WEAK") {
+            return "consensus-weak";
+        }
+
+        return "consensus-neutral";
+    }
+
+    function renderSummary(payload) {
+        const summary = payload.summary || {};
+        const container = document.getElementById(
+            "consensus-summary-grid"
+        );
+
+        if (!container) {
+            return;
+        }
+
+        const cards = [
+            ["Stocks", payload.stock_count ?? 0],
+            [
+                "Average Score",
+                Number(
+                    summary.average_consensus_score || 0
+                ).toFixed(2)
+            ],
+            [
+                "Strong",
+                summary.strong_consensus_count ?? 0
+            ],
+            [
+                "Moderate",
+                summary.moderate_consensus_count ?? 0
+            ],
+            [
+                "Weak",
+                summary.weak_consensus_count ?? 0
+            ],
+            [
+                "Risk Vetoes",
+                summary.risk_veto_count ?? 0
+            ]
+        ];
+
+        container.innerHTML = cards.map(function (card) {
+            return `
+                <div class="consensus-summary-card">
+                    <div class="consensus-summary-label">
+                        ${escapeHtml(card[0])}
+                    </div>
+                    <div class="consensus-summary-value">
+                        ${escapeHtml(card[1])}
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function renderRows(signals) {
+        const body = document.getElementById(
+            "consensus-table-body"
+        );
+
+        if (!body) {
+            return;
+        }
+
+        if (!Array.isArray(signals) || signals.length === 0) {
+            body.innerHTML = `
+                <tr>
+                    <td
+                        colspan="10"
+                        class="consensus-loading"
+                    >
+                        No persisted consensus signals found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        body.innerHTML = signals.map(function (item) {
+            const alignment =
+                item.consensus_alignment || "UNKNOWN";
+
+            const agreement =
+                Number(item.committee_agreement || 0);
+
+            const total =
+                Number(item.committee_total || 0);
+
+            const veto = Boolean(
+                item.consensus_risk_veto
+            );
+
+            return `
+                <tr>
+                    <td class="consensus-symbol">
+                        ${escapeHtml(item.symbol)}
+                    </td>
+
+                    <td>
+                        <span class="consensus-badge consensus-neutral">
+                            ${escapeHtml(item.decision)}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${Number(
+                            item.consensus_score || 0
+                        ).toFixed(2)}
+                    </td>
+
+                    <td>
+                        <span class="consensus-badge ${badgeClass(alignment)}">
+                            ${escapeHtml(alignment)}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${Number(
+                            item.consensus_confidence || 0
+                        ).toFixed(2)}%
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            item.consensus_conviction
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            item.decision_stability
+                        )}
+                    </td>
+
+                    <td>
+                        ${agreement}/${total}
+                    </td>
+
+                    <td>
+                        <span class="consensus-badge ${
+                            veto
+                                ? "consensus-veto"
+                                : "consensus-strong"
+                        }">
+                            ${veto ? "YES" : "NO"}
+                        </span>
+                    </td>
+
+                    <td class="consensus-explanation">
+                        ${escapeHtml(
+                            item.consensus_explanation
+                        )}
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    async function loadConsensusIntelligence() {
+        const body = document.getElementById(
+            "consensus-table-body"
+        );
+
+        if (body) {
+            body.innerHTML = `
+                <tr>
+                    <td
+                        colspan="10"
+                        class="consensus-loading"
+                    >
+                        Loading consensus intelligence...
+                    </td>
+                </tr>
+            `;
+        }
+
+        try {
+            const response = await fetch(
+                "/api/v12/consensus-intelligence",
+                {
+                    method: "GET",
+                    cache: "no-store",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                }
+            );
+
+            const payload = await response.json();
+
+            if (!response.ok || payload.status !== "ok") {
+                throw new Error(
+                    payload.error ||
+                    `Request failed: ${response.status}`
+                );
+            }
+
+            renderSummary(payload);
+            renderRows(payload.signals);
+        } catch (error) {
+            console.error(
+                "Consensus intelligence error:",
+                error
+            );
+
+            if (body) {
+                body.innerHTML = `
+                    <tr>
+                        <td
+                            colspan="10"
+                            class="consensus-error"
+                        >
+                            Unable to load consensus intelligence:
+                            ${escapeHtml(error.message)}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    }
+
+    window.loadConsensusIntelligence =
+        loadConsensusIntelligence;
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            loadConsensusIntelligence
+        );
+    } else {
+        loadConsensusIntelligence();
+    }
+
+    window.setInterval(
+        loadConsensusIntelligence,
+        60000
+    );
+})();
+</script>
+
 </main>
 
 <footer class="dashboard-footer">
     MIP PRO Professional Intelligence Suite · Version 11.5 · Built in Kenya · AI-Powered Investment Intelligence for Africa
 </footer>
+
+<!-- ==========================================================
+     PHASE 8.4D DASHBOARD ARRANGEMENT UPGRADE
+=========================================================== -->
+<style>
+    :root {
+        scroll-behavior: smooth;
+    }
+
+    .mip-dashboard-navigation {
+        position: sticky;
+        top: 0;
+        z-index: 900;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow-x: auto;
+        margin: 0 0 18px;
+        padding: 10px 12px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.94);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.16);
+        backdrop-filter: blur(12px);
+        scrollbar-width: thin;
+    }
+
+    .mip-dashboard-navigation a {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 11px;
+        border-radius: 8px;
+        color: #cbd5e1;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        transition:
+            background 0.18s ease,
+            color 0.18s ease;
+    }
+
+    .mip-dashboard-navigation a:hover,
+    .mip-dashboard-navigation a.is-active {
+        color: #f8fafc;
+        background: rgba(14, 165, 233, 0.22);
+    }
+
+    .mip-priority-zone {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+        margin-bottom: 20px;
+    }
+
+    .mip-priority-zone > * {
+        width: 100%;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .mip-priority-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 4px 0 -4px;
+        padding: 0 2px;
+    }
+
+    .mip-priority-label h2 {
+        margin: 0;
+        font-size: 1rem;
+        color: #0f172a;
+    }
+
+    .mip-priority-label span {
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .mip-collapse-toggle {
+        margin-left: auto;
+        padding: 6px 11px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 8px;
+        background: rgba(148, 163, 184, 0.10);
+        color: inherit;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .mip-learning-collapsed > *:not(
+        :first-child
+    ):not(
+        .mip-collapse-toggle
+    ) {
+        display: none !important;
+    }
+
+    /*
+     * Reduce excessive dashboard vertical spacing.
+     */
+    main > section,
+    main > .panel,
+    main > .dashboard-panel,
+    main > .content-grid,
+    main > .two-column-grid {
+        margin-bottom: 18px !important;
+    }
+
+    /*
+     * Compact common stock/prediction card layouts.
+     * Existing data bindings and IDs are not changed.
+     */
+    .prediction-grid,
+    .prediction-cards,
+    .stock-card-grid,
+    .signal-card-grid,
+    .opportunity-grid {
+        display: grid !important;
+        grid-template-columns:
+            repeat(auto-fit, minmax(220px, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    .prediction-card,
+    .stock-card,
+    .signal-card,
+    .opportunity-card {
+        min-height: 0 !important;
+        padding: 13px !important;
+    }
+
+    .prediction-card p,
+    .stock-card p,
+    .signal-card p,
+    .opportunity-card p {
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+    }
+
+    /*
+     * Keep dashboard charts useful without allowing them
+     * to dominate the first several screens.
+     */
+    .rc2-chart-section canvas,
+    .dashboard-panel canvas {
+        max-height: 320px;
+    }
+
+    [data-mip-anchor] {
+        scroll-margin-top: 74px;
+    }
+
+    @media (max-width: 768px) {
+        .mip-dashboard-navigation {
+            top: 0;
+            margin-left: -4px;
+            margin-right: -4px;
+            border-radius: 9px;
+        }
+
+        .mip-priority-zone {
+            gap: 14px;
+        }
+
+        .prediction-grid,
+        .prediction-cards,
+        .stock-card-grid,
+        .signal-card-grid,
+        .opportunity-grid {
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .prediction-card,
+        .stock-card,
+        .signal-card,
+        .opportunity-card {
+            padding: 10px !important;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .prediction-grid,
+        .prediction-cards,
+        .stock-card-grid,
+        .signal-card-grid,
+        .opportunity-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+
+<script>
+(function () {
+    "use strict";
+
+    const SECTION_DEFINITIONS = [
+        {
+            id: "prediction-center",
+            label: "Predictions",
+            terms: [
+                "Prediction Center 2.0",
+                "Prediction Center"
+            ],
+            priority: true
+        },
+        {
+            id: "consensus-intelligence",
+            label: "Consensus",
+            terms: [
+                "Consensus Intelligence"
+            ],
+            priority: true
+        },
+        {
+            id: "top-opportunities",
+            label: "Opportunities",
+            terms: [
+                "Top Autonomous Opportunities"
+            ],
+            priority: true
+        },
+        {
+            id: "market-breadth",
+            label: "Market Breadth",
+            terms: [
+                "Market Breadth"
+            ]
+        },
+        {
+            id: "volume-intelligence",
+            label: "Volume",
+            terms: [
+                "Volume Intelligence",
+                "Volume Leaders"
+            ]
+        },
+        {
+            id: "portfolio-overview",
+            label: "Portfolio",
+            terms: [
+                "Portfolio Overview",
+                "Portfolio Performance"
+            ]
+        },
+        {
+            id: "learning-engine",
+            label: "Learning",
+            terms: [
+                "AI Learning Engine",
+                "Learning Engine"
+            ],
+            collapsible: true
+        },
+        {
+            id: "performance-analytics",
+            label: "Performance",
+            terms: [
+                "AI Performance Analytics",
+                "Performance Analytics"
+            ]
+        },
+        {
+            id: "configuration",
+            label: "Settings",
+            terms: [
+                "Configuration",
+                "Settings"
+            ]
+        }
+    ];
+
+    function normalizeText(value) {
+        return String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+    }
+
+    function findHeading(main, terms) {
+        const headings = Array.from(
+            main.querySelectorAll(
+                "h1, h2, h3, h4, .panel-title"
+            )
+        );
+
+        return headings.find(function (heading) {
+            const text = normalizeText(
+                heading.textContent
+            );
+
+            return terms.some(function (term) {
+                return text.includes(
+                    normalizeText(term)
+                );
+            });
+        }) || null;
+    }
+
+    function findSectionContainer(heading, main) {
+        if (!heading) {
+            return null;
+        }
+
+        let current = heading;
+
+        while (
+            current &&
+            current.parentElement &&
+            current.parentElement !== main
+        ) {
+            if (
+                current.matches &&
+                current.matches(
+                    "section, article, " +
+                    ".panel, .dashboard-panel, " +
+                    ".content-grid, .two-column-grid, " +
+                    ".three-columns, .enterprise-learning-panel"
+                )
+            ) {
+                /*
+                 * Prefer a meaningful section rather than
+                 * a small title wrapper.
+                 */
+                if (
+                    current.querySelectorAll(
+                        "div, table, canvas, article, section"
+                    ).length > 0
+                ) {
+                    return current;
+                }
+            }
+
+            current = current.parentElement;
+        }
+
+        if (
+            current &&
+            current.parentElement === main
+        ) {
+            return current;
+        }
+
+        return heading.closest("section") || null;
+    }
+
+    function findTopLevelBlock(element, main) {
+        if (!element) {
+            return null;
+        }
+
+        let current = element;
+
+        while (
+            current.parentElement &&
+            current.parentElement !== main
+        ) {
+            current = current.parentElement;
+        }
+
+        return (
+            current.parentElement === main
+                ? current
+                : element
+        );
+    }
+
+    function ensureUniqueId(element, requestedId) {
+        if (!element) {
+            return null;
+        }
+
+        if (
+            element.id &&
+            document.getElementById(element.id) === element
+        ) {
+            element.dataset.mipAnchor = "true";
+            return element.id;
+        }
+
+        let candidate = requestedId;
+        let counter = 2;
+
+        while (
+            document.getElementById(candidate) &&
+            document.getElementById(candidate) !== element
+        ) {
+            candidate = requestedId + "-" + counter;
+            counter += 1;
+        }
+
+        element.id = candidate;
+        element.dataset.mipAnchor = "true";
+
+        return candidate;
+    }
+
+    function installLearningToggle(
+        section,
+        heading
+    ) {
+        if (
+            !section ||
+            !heading ||
+            section.dataset.mipCollapsible === "true"
+        ) {
+            return;
+        }
+
+        section.dataset.mipCollapsible = "true";
+
+        const button = document.createElement(
+            "button"
+        );
+
+        button.type = "button";
+        button.className = "mip-collapse-toggle";
+        button.textContent = "Expand Learning";
+
+        heading.appendChild(button);
+        section.classList.add(
+            "mip-learning-collapsed"
+        );
+
+        button.addEventListener(
+            "click",
+            function () {
+                const collapsed =
+                    section.classList.toggle(
+                        "mip-learning-collapsed"
+                    );
+
+                button.textContent = collapsed
+                    ? "Expand Learning"
+                    : "Collapse Learning";
+            }
+        );
+    }
+
+    function installNavigation(
+        main,
+        resolvedSections
+    ) {
+        if (
+            main.querySelector(
+                ".mip-dashboard-navigation"
+            )
+        ) {
+            return;
+        }
+
+        const navigation = document.createElement(
+            "nav"
+        );
+
+        navigation.className =
+            "mip-dashboard-navigation";
+
+        navigation.setAttribute(
+            "aria-label",
+            "Dashboard sections"
+        );
+
+        resolvedSections.forEach(function (entry) {
+            if (!entry.id) {
+                return;
+            }
+
+            const link = document.createElement("a");
+
+            link.href = "#" + entry.id;
+            link.textContent = entry.definition.label;
+
+            navigation.appendChild(link);
+        });
+
+        main.insertBefore(
+            navigation,
+            main.firstChild
+        );
+
+        const links = Array.from(
+            navigation.querySelectorAll("a")
+        );
+
+        if (
+            "IntersectionObserver" in window
+        ) {
+            const observer =
+                new IntersectionObserver(
+                    function (entries) {
+                        entries.forEach(function (entry) {
+                            if (!entry.isIntersecting) {
+                                return;
+                            }
+
+                            links.forEach(function (link) {
+                                link.classList.toggle(
+                                    "is-active",
+                                    link.getAttribute("href") ===
+                                        "#" + entry.target.id
+                                );
+                            });
+                        });
+                    },
+                    {
+                        rootMargin:
+                            "-20% 0px -70% 0px",
+                        threshold: 0.01
+                    }
+                );
+
+            resolvedSections.forEach(function (entry) {
+                observer.observe(entry.section);
+            });
+        }
+    }
+
+    function installPriorityZone(
+        main,
+        resolvedSections
+    ) {
+        if (
+            main.querySelector(".mip-priority-zone")
+        ) {
+            return;
+        }
+
+        const priorityEntries =
+            resolvedSections.filter(
+                function (entry) {
+                    return entry.definition.priority;
+                }
+            );
+
+        if (!priorityEntries.length) {
+            return;
+        }
+
+        const navigation = main.querySelector(
+            ".mip-dashboard-navigation"
+        );
+
+        const zone = document.createElement("div");
+
+        zone.className = "mip-priority-zone";
+        zone.id = "mip-priority-intelligence";
+
+        const label = document.createElement("div");
+        label.className = "mip-priority-label";
+        label.innerHTML =
+            "<h2>Priority Intelligence</h2>" +
+            "<span>Decisions, consensus and opportunities</span>";
+
+        zone.appendChild(label);
+
+        const movedBlocks = new Set();
+
+        priorityEntries.forEach(function (entry) {
+            const block = findTopLevelBlock(
+                entry.section,
+                main
+            );
+
+            if (
+                !block ||
+                block === navigation ||
+                block === zone ||
+                movedBlocks.has(block)
+            ) {
+                return;
+            }
+
+            movedBlocks.add(block);
+            zone.appendChild(block);
+        });
+
+        if (navigation) {
+            navigation.insertAdjacentElement(
+                "afterend",
+                zone
+            );
+        } else {
+            main.insertBefore(
+                zone,
+                main.firstChild
+            );
+        }
+    }
+
+    function initializeDashboardArrangement() {
+        const main = document.querySelector("main");
+
+        if (!main) {
+            console.warn(
+                "Dashboard arrangement: main element not found"
+            );
+            return;
+        }
+
+        if (
+            main.dataset.mipArrangementInitialized ===
+            "true"
+        ) {
+            return;
+        }
+
+        main.dataset.mipArrangementInitialized =
+            "true";
+
+        const resolvedSections = [];
+
+        SECTION_DEFINITIONS.forEach(
+            function (definition) {
+                const heading = findHeading(
+                    main,
+                    definition.terms
+                );
+
+                if (!heading) {
+                    return;
+                }
+
+                const section = findSectionContainer(
+                    heading,
+                    main
+                );
+
+                if (!section) {
+                    return;
+                }
+
+                const id = ensureUniqueId(
+                    section,
+                    definition.id
+                );
+
+                resolvedSections.push({
+                    definition: definition,
+                    heading: heading,
+                    section: section,
+                    id: id
+                });
+
+                if (definition.collapsible) {
+                    installLearningToggle(
+                        section,
+                        heading
+                    );
+                }
+            }
+        );
+
+        installNavigation(
+            main,
+            resolvedSections
+        );
+
+        installPriorityZone(
+            main,
+            resolvedSections
+        );
+
+        console.info(
+            "Phase 8.4D dashboard arrangement initialized:",
+            resolvedSections.map(function (entry) {
+                return entry.definition.label;
+            })
+        );
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeDashboardArrangement
+        );
+    } else {
+        initializeDashboardArrangement();
+    }
+})();
+</script>
+
+<!-- ==========================================================
+     MIP FULL WIDTH MARKET AND PERFORMANCE LAYOUT
+=========================================================== -->
+<style>
+    /*
+     * Phase UI Enhancement:
+     * Stretch Market Breadth and AI Performance Analytics
+     * across the entire available dashboard width.
+     */
+
+    .mip-full-width-analytics {
+        width: 100% !important;
+        max-width: none !important;
+        grid-column: 1 / -1 !important;
+        flex: 0 0 100% !important;
+        align-self: stretch !important;
+        box-sizing: border-box !important;
+    }
+
+    .mip-full-width-analytics-wrapper {
+        width: 100% !important;
+        max-width: none !important;
+        grid-column: 1 / -1 !important;
+        flex: 0 0 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /*
+     * Prevent a two-column parent from keeping an empty
+     * second dashboard column.
+     */
+    .mip-full-width-parent {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /*
+     * Market Breadth: four cards on one row.
+     */
+    .mip-market-breadth-section
+        .breadth-grid,
+    .mip-market-breadth-section
+        .market-breadth-grid,
+    .mip-market-breadth-section
+        .breadth-stats-grid,
+    .mip-market-breadth-section
+        .breadth-summary-grid,
+    .mip-market-breadth-section
+        .metric-grid,
+    .mip-market-breadth-section
+        .metrics-grid,
+    .mip-market-breadth-section
+        .stats-grid,
+    .mip-market-breadth-section
+        .kpi-grid,
+    .mip-market-breadth-section
+        [class*="breadth"][class*="grid"] {
+        display: grid !important;
+        grid-template-columns:
+            repeat(4, minmax(0, 1fr)) !important;
+        gap: 14px !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /*
+     * Performance: four KPI cards on one row.
+     */
+    .mip-performance-section
+        .performance-grid,
+    .mip-performance-section
+        .performance-summary-grid,
+    .mip-performance-section
+        .analytics-grid,
+    .mip-performance-section
+        .metric-grid,
+    .mip-performance-section
+        .metrics-grid,
+    .mip-performance-section
+        .stats-grid,
+    .mip-performance-section
+        .kpi-grid,
+    .mip-performance-section
+        [class*="performance"][class*="grid"] {
+        display: grid !important;
+        grid-template-columns:
+            repeat(4, minmax(0, 1fr)) !important;
+        gap: 14px !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /*
+     * Runtime-detected metric containers.
+     */
+    .mip-forced-four-column-grid {
+        display: grid !important;
+        grid-template-columns:
+            repeat(4, minmax(0, 1fr)) !important;
+        gap: 14px !important;
+        width: 100% !important;
+        max-width: none !important;
+        box-sizing: border-box !important;
+    }
+
+    .mip-forced-four-column-grid > * {
+        min-width: 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        box-sizing: border-box !important;
+    }
+
+    /*
+     * Give the four cards a consistent visual height.
+     */
+    .mip-market-breadth-section
+        .mip-forced-four-column-grid > *,
+    .mip-performance-section
+        .mip-forced-four-column-grid > * {
+        min-height: 145px;
+    }
+
+    /*
+     * Stretch progress bars and interpretation boxes.
+     */
+    .mip-market-breadth-section progress,
+    .mip-market-breadth-section
+        [class*="progress"],
+    .mip-market-breadth-section
+        [class*="interpretation"],
+    .mip-market-breadth-section
+        [class*="pulse"] {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /*
+     * Make list-style performance rows fill the card.
+     */
+    .mip-performance-section table,
+    .mip-performance-section
+        [class*="performance-list"],
+    .mip-performance-section
+        [class*="analytics-list"],
+    .mip-performance-section
+        [class*="metric-list"] {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /*
+     * Remove limiting widths inherited from nested panels.
+     */
+    .mip-market-breadth-section,
+    .mip-performance-section,
+    .mip-market-breadth-section > *,
+    .mip-performance-section > * {
+        max-width: none !important;
+        box-sizing: border-box !important;
+    }
+
+    @media (max-width: 1050px) {
+        .mip-forced-four-column-grid,
+        .mip-market-breadth-section
+            [class*="grid"],
+        .mip-performance-section
+            [class*="grid"] {
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr)) !important;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .mip-forced-four-column-grid,
+        .mip-market-breadth-section
+            [class*="grid"],
+        .mip-performance-section
+            [class*="grid"] {
+            grid-template-columns: 1fr !important;
+        }
+
+        .mip-market-breadth-section
+            .mip-forced-four-column-grid > *,
+        .mip-performance-section
+            .mip-forced-four-column-grid > * {
+            min-height: 0;
+        }
+    }
+</style>
+
+<script>
+(function () {
+    "use strict";
+
+    const TARGETS = [
+        {
+            type: "breadth",
+            className: "mip-market-breadth-section",
+            headings: [
+                "Advancers and Decliners",
+                "Market Breadth"
+            ],
+            cardTerms: [
+                "Advancers",
+                "Decliners",
+                "Unchanged",
+                "Advance/Decline"
+            ]
+        },
+        {
+            type: "performance",
+            className: "mip-performance-section",
+            headings: [
+                "AI Performance Analytics"
+            ],
+            cardTerms: [
+                "Recommendations",
+                "Evaluations",
+                "Accuracy",
+                "Average return"
+            ]
+        }
+    ];
+
+    function normalize(value) {
+        return String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+    }
+
+    function containsAny(text, terms) {
+        const normalizedText = normalize(text);
+
+        return terms.some(function (term) {
+            return normalizedText.includes(
+                normalize(term)
+            );
+        });
+    }
+
+    function findHeading(terms) {
+        const headings = Array.from(
+            document.querySelectorAll(
+                "h1, h2, h3, h4, h5, " +
+                ".panel-title, .section-title"
+            )
+        );
+
+        return headings.find(function (heading) {
+            return containsAny(
+                heading.textContent,
+                terms
+            );
+        }) || null;
+    }
+
+    function isUsefulSection(element) {
+        if (!element) {
+            return false;
+        }
+
+        const text = normalize(
+            element.textContent
+        );
+
+        return (
+            text.length > 30 &&
+            element.querySelectorAll(
+                "div, article, table, canvas"
+            ).length >= 2
+        );
+    }
+
+    function findSection(heading) {
+        if (!heading) {
+            return null;
+        }
+
+        const direct = heading.closest(
+            "section, article, .panel, " +
+            ".dashboard-panel, .card, " +
+            ".content-grid, .two-column-grid"
+        );
+
+        if (isUsefulSection(direct)) {
+            return direct;
+        }
+
+        let current = heading.parentElement;
+
+        while (
+            current &&
+            current !== document.body
+        ) {
+            if (
+                current.matches(
+                    "section, article, .panel, " +
+                    ".dashboard-panel, .content-grid, " +
+                    ".two-column-grid"
+                ) &&
+                isUsefulSection(current)
+            ) {
+                return current;
+            }
+
+            current = current.parentElement;
+        }
+
+        return direct;
+    }
+
+    function findTopLevelDashboardBlock(section) {
+        if (!section) {
+            return null;
+        }
+
+        const main = section.closest("main");
+
+        if (!main) {
+            return section;
+        }
+
+        let current = section;
+
+        while (
+            current.parentElement &&
+            current.parentElement !== main
+        ) {
+            current = current.parentElement;
+        }
+
+        return current;
+    }
+
+    function scoreContainer(
+        container,
+        terms
+    ) {
+        if (!container) {
+            return 0;
+        }
+
+        const directChildren = Array.from(
+            container.children
+        ).filter(function (child) {
+            return normalize(
+                child.textContent
+            ).length > 0;
+        });
+
+        if (
+            directChildren.length < 4 ||
+            directChildren.length > 8
+        ) {
+            return 0;
+        }
+
+        let matches = 0;
+
+        terms.forEach(function (term) {
+            const found = directChildren.some(
+                function (child) {
+                    return containsAny(
+                        child.textContent,
+                        [term]
+                    );
+                }
+            );
+
+            if (found) {
+                matches += 1;
+            }
+        });
+
+        if (matches < 3) {
+            return 0;
+        }
+
+        return (
+            matches * 100
+            - Math.abs(
+                directChildren.length - 4
+            ) * 10
+        );
+    }
+
+    function findMetricContainer(
+        section,
+        terms
+    ) {
+        if (!section) {
+            return null;
+        }
+
+        const candidates = Array.from(
+            section.querySelectorAll(
+                "div, ul, section"
+            )
+        );
+
+        let best = null;
+        let bestScore = 0;
+
+        candidates.forEach(function (candidate) {
+            const score = scoreContainer(
+                candidate,
+                terms
+            );
+
+            if (score > bestScore) {
+                best = candidate;
+                bestScore = score;
+            }
+        });
+
+        return best;
+    }
+
+    function stretchParent(block) {
+        if (!block) {
+            return;
+        }
+
+        block.classList.add(
+            "mip-full-width-analytics",
+            "mip-full-width-analytics-wrapper"
+        );
+
+        const parent = block.parentElement;
+
+        if (!parent) {
+            return;
+        }
+
+        const style = window.getComputedStyle(
+            parent
+        );
+
+        if (
+            style.display === "grid" &&
+            style.gridTemplateColumns
+                .split(" ")
+                .length > 1
+        ) {
+            /*
+             * Do not convert the whole parent to one column
+             * when it contains several unrelated dashboard
+             * sections. The block itself spans all columns.
+             */
+            block.style.gridColumn = "1 / -1";
+        }
+
+        if (
+            style.display === "flex"
+        ) {
+            block.style.flexBasis = "100%";
+            block.style.width = "100%";
+        }
+    }
+
+    function applyTarget(target) {
+        const heading = findHeading(
+            target.headings
+        );
+
+        if (!heading) {
+            console.warn(
+                "Full-width layout: heading not found",
+                target.headings
+            );
+            return false;
+        }
+
+        const section = findSection(heading);
+
+        if (!section) {
+            console.warn(
+                "Full-width layout: section not found",
+                target.type
+            );
+            return false;
+        }
+
+        section.classList.add(
+            target.className,
+            "mip-full-width-analytics"
+        );
+
+        const topBlock =
+            findTopLevelDashboardBlock(
+                section
+            );
+
+        stretchParent(topBlock);
+
+        const metricContainer =
+            findMetricContainer(
+                section,
+                target.cardTerms
+            );
+
+        if (metricContainer) {
+            metricContainer.classList.add(
+                "mip-forced-four-column-grid"
+            );
+        } else {
+            console.warn(
+                "Full-width layout: metric container " +
+                "not automatically detected",
+                target.type
+            );
+        }
+
+        return true;
+    }
+
+    function initializeFullWidthLayout() {
+        if (
+            document.documentElement.dataset
+                .mipFullWidthAnalytics ===
+            "true"
+        ) {
+            return;
+        }
+
+        document.documentElement.dataset
+            .mipFullWidthAnalytics = "true";
+
+        const results = TARGETS.map(
+            applyTarget
+        );
+
+        console.info(
+            "MIP full-width analytics installed:",
+            results
+        );
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeFullWidthLayout
+        );
+    } else {
+        initializeFullWidthLayout();
+    }
+})();
+</script>
+
+<!-- ==========================================================
+     MIP FULL WIDTH PERSISTED COMMITTEE OPPORTUNITIES
+=========================================================== -->
+<style>
+    /*
+     * Priority Intelligence must use a single-column layout.
+     */
+    #mip-priority-intelligence,
+    .mip-priority-zone {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100% !important;
+        max-width: none !important;
+        gap: 18px !important;
+        box-sizing: border-box !important;
+    }
+
+    /*
+     * Full-width committee opportunities panel.
+     */
+    .mip-full-width-committee-opportunities {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        grid-column: 1 / -1 !important;
+        flex: 0 0 100% !important;
+        align-self: stretch !important;
+        box-sizing: border-box !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .mip-full-width-committee-opportunities > * {
+        max-width: none !important;
+        box-sizing: border-box !important;
+    }
+
+    /*
+     * Remove inherited half-width rules from parent layouts.
+     */
+    .mip-committee-full-width-parent {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        box-sizing: border-box !important;
+    }
+
+    /*
+     * The repository table should use all available space.
+     */
+    .mip-full-width-committee-opportunities table {
+        width: 100% !important;
+        max-width: none !important;
+        table-layout: auto !important;
+        border-collapse: collapse;
+    }
+
+    .mip-full-width-committee-opportunities
+        .table-wrapper,
+    .mip-full-width-committee-opportunities
+        .table-container,
+    .mip-full-width-committee-opportunities
+        [class*="table-wrapper"],
+    .mip-full-width-committee-opportunities
+        [class*="table-container"] {
+        width: 100% !important;
+        max-width: none !important;
+        overflow-x: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    .mip-full-width-committee-opportunities th,
+    .mip-full-width-committee-opportunities td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        vertical-align: middle;
+    }
+
+    /*
+     * Give important columns sufficient room on desktop.
+     */
+    .mip-full-width-committee-opportunities th:nth-child(1),
+    .mip-full-width-committee-opportunities td:nth-child(1) {
+        width: 5%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(2),
+    .mip-full-width-committee-opportunities td:nth-child(2) {
+        width: 18%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(3),
+    .mip-full-width-committee-opportunities td:nth-child(3) {
+        width: 10%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(4),
+    .mip-full-width-committee-opportunities td:nth-child(4) {
+        width: 11%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(5),
+    .mip-full-width-committee-opportunities td:nth-child(5) {
+        width: 10%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(6),
+    .mip-full-width-committee-opportunities td:nth-child(6) {
+        width: 10%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(7),
+    .mip-full-width-committee-opportunities td:nth-child(7) {
+        width: 11%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(8),
+    .mip-full-width-committee-opportunities td:nth-child(8) {
+        width: 10%;
+    }
+
+    .mip-full-width-committee-opportunities th:nth-child(9),
+    .mip-full-width-committee-opportunities td:nth-child(9) {
+        width: 15%;
+    }
+
+    @media (max-width: 900px) {
+        .mip-full-width-committee-opportunities table {
+            min-width: 980px !important;
+        }
+
+        .mip-full-width-committee-opportunities th,
+        .mip-full-width-committee-opportunities td {
+            white-space: normal;
+        }
+    }
+</style>
+
+<script>
+(function () {
+    "use strict";
+
+    const PANEL_HEADING = "Persisted Committee Opportunities";
+
+    function normalize(value) {
+        return String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+    }
+
+    function findHeading() {
+        const headings = Array.from(
+            document.querySelectorAll(
+                "h1, h2, h3, h4, h5, .panel-title"
+            )
+        );
+
+        return headings.find(function (heading) {
+            return normalize(
+                heading.textContent
+            ).includes(
+                normalize(PANEL_HEADING)
+            );
+        }) || null;
+    }
+
+    function isMeaningfulPanel(element) {
+        if (!element) {
+            return false;
+        }
+
+        const textLength = normalize(
+            element.textContent
+        ).length;
+
+        const containsTable = Boolean(
+            element.querySelector("table")
+        );
+
+        return (
+            textLength > 80 &&
+            containsTable
+        );
+    }
+
+    function findPanel(heading) {
+        if (!heading) {
+            return null;
+        }
+
+        let current = heading;
+
+        while (
+            current &&
+            current !== document.body
+        ) {
+            if (
+                current.matches &&
+                current.matches(
+                    "section, article, .panel, " +
+                    ".dashboard-panel, .card, " +
+                    ".repository-panel, " +
+                    ".opportunities-panel"
+                ) &&
+                isMeaningfulPanel(current)
+            ) {
+                return current;
+            }
+
+            current = current.parentElement;
+        }
+
+        return heading.closest(
+            "section, article, .panel, .dashboard-panel"
+        );
+    }
+
+    function findPriorityZone() {
+        return (
+            document.getElementById(
+                "mip-priority-intelligence"
+            ) ||
+            document.querySelector(
+                ".mip-priority-zone"
+            )
+        );
+    }
+
+    function findPriorityLabel(zone) {
+        if (!zone) {
+            return null;
+        }
+
+        return zone.querySelector(
+            ".mip-priority-label"
+        );
+    }
+
+    function movePanelToPriorityZone(
+        panel,
+        zone
+    ) {
+        if (!panel || !zone) {
+            return;
+        }
+
+        const oldParent = panel.parentElement;
+        const label = findPriorityLabel(zone);
+
+        if (label) {
+            label.insertAdjacentElement(
+                "afterend",
+                panel
+            );
+        } else {
+            zone.insertBefore(
+                panel,
+                zone.firstChild
+            );
+        }
+
+        /*
+         * Mark the former parent so it can no longer
+         * impose a narrow two-column width.
+         */
+        if (
+            oldParent &&
+            oldParent !== zone &&
+            oldParent.children.length > 0
+        ) {
+            oldParent.classList.add(
+                "mip-committee-full-width-parent"
+            );
+        }
+
+        /*
+         * Remove an empty container left behind after moving
+         * the committee panel.
+         */
+        if (
+            oldParent &&
+            oldParent !== zone &&
+            oldParent.children.length === 0
+        ) {
+            oldParent.remove();
+        }
+    }
+
+    function stretchAncestors(panel, zone) {
+        if (!panel) {
+            return;
+        }
+
+        panel.classList.add(
+            "mip-full-width-committee-opportunities"
+        );
+
+        panel.style.width = "100%";
+        panel.style.maxWidth = "none";
+        panel.style.gridColumn = "1 / -1";
+
+        if (zone) {
+            zone.style.display = "grid";
+            zone.style.gridTemplateColumns =
+                "minmax(0, 1fr)";
+            zone.style.width = "100%";
+            zone.style.maxWidth = "none";
+        }
+
+        const main = panel.closest("main");
+
+        let current = panel.parentElement;
+
+        while (
+            current &&
+            current !== main &&
+            current !== document.body
+        ) {
+            current.style.maxWidth = "none";
+
+            if (current === zone) {
+                break;
+            }
+
+            current = current.parentElement;
+        }
+    }
+
+    function ensureTableWrapper(panel) {
+        if (!panel) {
+            return;
+        }
+
+        const table = panel.querySelector("table");
+
+        if (!table) {
+            return;
+        }
+
+        const parent = table.parentElement;
+
+        if (
+            parent &&
+            (
+                parent.classList.contains(
+                    "table-wrapper"
+                ) ||
+                parent.classList.contains(
+                    "table-container"
+                ) ||
+                normalize(parent.className)
+                    .includes("table-wrapper") ||
+                normalize(parent.className)
+                    .includes("table-container")
+            )
+        ) {
+            return;
+        }
+
+        const wrapper = document.createElement(
+            "div"
+        );
+
+        wrapper.className =
+            "mip-committee-table-wrapper";
+
+        wrapper.style.width = "100%";
+        wrapper.style.overflowX = "auto";
+
+        table.parentNode.insertBefore(
+            wrapper,
+            table
+        );
+
+        wrapper.appendChild(table);
+    }
+
+    function initializeFullWidthCommitteePanel() {
+        if (
+            document.documentElement.dataset
+                .mipCommitteeFullWidth === "true"
+        ) {
+            return;
+        }
+
+        const heading = findHeading();
+
+        if (!heading) {
+            console.warn(
+                "Persisted Committee Opportunities " +
+                "heading was not found."
+            );
+            return;
+        }
+
+        const panel = findPanel(heading);
+
+        if (!panel) {
+            console.warn(
+                "Persisted Committee Opportunities " +
+                "panel was not found."
+            );
+            return;
+        }
+
+        const zone = findPriorityZone();
+
+        if (zone && !zone.contains(panel)) {
+            movePanelToPriorityZone(
+                panel,
+                zone
+            );
+        } else if (
+            zone &&
+            panel.parentElement !== zone
+        ) {
+            movePanelToPriorityZone(
+                panel,
+                zone
+            );
+        }
+
+        stretchAncestors(
+            panel,
+            zone
+        );
+
+        ensureTableWrapper(panel);
+
+        document.documentElement.dataset
+            .mipCommitteeFullWidth = "true";
+
+        console.info(
+            "Persisted Committee Opportunities " +
+            "is now full width."
+        );
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeFullWidthCommitteePanel
+        );
+    } else {
+        initializeFullWidthCommitteePanel();
+    }
+})();
+</script>
 
 </body>
 </html>

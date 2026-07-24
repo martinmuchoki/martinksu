@@ -1,0 +1,50 @@
+<section class="panel">
+    <h2>Portfolio Performance</h2>
+
+    <table class="nse-market-table">
+        <tr>
+            <th>Portfolio Value</th>
+            <th>Invested Capital</th>
+            <th>Unrealized Gain</th>
+            <th>Return</th>
+        </tr>
+
+        <tr>
+            <td>
+                <strong>
+                    KSh {{ "{:,.2f}".format(cash_summary.get("portfolio_value",0)|float) }}
+                </strong>
+                <br>
+                <small>Live Market Value</small>
+            </td>
+
+            <td>
+                <strong>
+                    KSh {{ "{:,.2f}".format(cash_summary.get("invested_capital",0)|float) }}
+                </strong>
+                <br>
+                <small>Cost Basis</small>
+            </td>
+
+            <td>
+                {% set gain = cash_summary.get("unrealized_gain",0)|float %}
+                <strong style="color:{% if gain>=0 %}#00c853{% else %}#ff5252{% endif %};">
+                    {% if gain>0 %}+{% endif %}
+                    KSh {{ "{:,.2f}".format(gain) }}
+                </strong>
+                <br>
+                <small>Open Profit/Loss</small>
+            </td>
+
+            <td>
+                <strong style="color:{% if portfolio_return>=0 %}#00c853{% else %}#ff5252{% endif %};">
+                    {% if portfolio_return>0 %}+{% endif %}
+                    {{ "{:.2f}".format(portfolio_return) }}%
+                </strong>
+                <br>
+                <small>Since Purchase</small>
+            </td>
+        </tr>
+
+    </table>
+</section>

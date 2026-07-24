@@ -3,6 +3,7 @@ from datetime import datetime
 from services.market_engine import get_market_intelligence
 from services.screener_engine import run_screener
 from services.telegram_bot import send_telegram_alert
+from services.signal_presenter import get_signal_presenter
 from services.logger import log_info, log_warning, log_exception
 
 
@@ -28,52 +29,13 @@ def run_daily_market_scan():
     )
 
     return report
-
-
-def build_telegram_report(report):
-    top = report["top_pick"]
-
-    if not top:
-        return "MIP PRO\nNo opportunities found."
-
-    return f"""
-📊 NSE Daily AI Market Report
-
-Market:
-{report['market']}
-
-Average Change:
-{report['average_change']}%
-
-Stocks Scanned:
-{report['stocks_scanned']}
-
-Top Opportunity:
-{top['symbol']}
-
-Decision:
-{top['decision']}
-
-Confidence:
-{top['confidence']}%
-
-Risk:
-{top['risk']}
-
-Suggested Position:
-{top['position']}%
-
-Generated:
-{report['generated_at']}
-
-MIP PRO
-""".strip()
-
-
 def run_daily_automation():
     try:
         report = run_daily_market_scan()
-        message = build_telegram_report(report)
+        message = (
+            get_signal_presenter()
+            .build_telegram_digest(limit=5)
+        )
         telegram = send_telegram_alert(message)
 
         if telegram.get("sent"):

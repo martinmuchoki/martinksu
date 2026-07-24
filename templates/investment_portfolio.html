@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Investment Portfolio | MIP PRO</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for(
+            'static',
+            filename='css/investment_portfolio.css'
+        ) }}"
+    >
+</head>
+
+<body>
+<main class="portfolio-page">
+
+    <!-- ==================================================
+         PAGE HEADER
+    =================================================== -->
+    <header class="portfolio-header">
+        <div class="portfolio-title">
+            <span class="portfolio-eyebrow">
+                MIP PRO Enterprise
+            </span>
+
+            <h1>Investment Portfolio</h1>
+
+            <p>
+                Manage investment settings, record completed
+                trades and monitor portfolio performance.
+            </p>
+        </div>
+
+        <nav class="portfolio-navigation">
+            <a href="{{ url_for('dashboard') }}">
+                Dashboard
+            </a>
+
+            <a href="/control-center">
+                Control Center
+            </a>
+
+            <a href="{{ url_for('about') }}">
+                About Us
+            </a>
+
+            <a href="{{ url_for('logout') }}">
+                Logout
+            </a>
+        </nav>
+    </header>
+
+
+    <!-- ==================================================
+         MESSAGES
+    =================================================== -->
+    {% if message %}
+    <div class="portfolio-alert portfolio-alert-success">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="portfolio-alert portfolio-alert-error">
+        {{ error }}
+    </div>
+    {% endif %}
+
+
+    <!-- ==================================================
+         PORTFOLIO SUMMARY
+    =================================================== -->
+    <section class="portfolio-summary-grid">
+
+        <article class="summary-card">
+            <span>Open Positions</span>
+            <strong>
+                {{ summary.open_positions }}
+            </strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Total Trades</span>
+            <strong>
+                {{ summary.total_trades }}
+            </strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Portfolio Value</span>
+            <strong>
+                KSh
+                {{ "%.2f"|format(
+                    summary.invested_capital
+                ) }}
+            </strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Realized P/L</span>
+            <strong
+                class="{% if
+                    summary.realized_profit_loss >= 0
+                %}positive{% else %}negative{% endif %}"
+            >
+                KSh
+                {{ "%.2f"|format(
+                    summary.realized_profit_loss
+                ) }}
+            </strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Total Charges</span>
+            <strong>
+                KSh
+                {{ "%.2f"|format(
+                    summary.total_charges
+                ) }}
+            </strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Currency</span>
+            <strong>
+                {{ investment_settings.get(
+                    "currency",
+                    "KES"
+                ) }}
+            </strong>
+        </article>
+
+    </section>
+
+
+    <!-- ==================================================
+         SETTINGS AND TRADE ENTRY
+    =================================================== -->
+    <section class="portfolio-workspace">
+
+        <!-- INVESTMENT SETTINGS -->
+        <article class="portfolio-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="panel-kicker">
+                        Configuration
+                    </span>
+
+                    <h2>Investment Settings</h2>
+
+                    <p>
+                        These settings apply automatically
+                        to newly recorded trades.
+                    </p>
+                </div>
+            </div>
+
+            <form
+                method="post"
+                action="{{ url_for('ziidi_copilot') }}"
+                class="portfolio-form settings-form"
+            >
+                <input
+                    type="hidden"
+                    name="form_action"
+                    value="settings"
+                >
+
+                <div class="form-grid">
+
+                    <label class="form-field">
+                        <span>Broker</span>
+
+                        {% set current_broker =
+                            investment_settings.get(
+                                "broker",
+                                "Ziidi"
+                            )
+                        %}
+
+                        <select name="broker">
+                            {% for broker_name in [
+                                "Ziidi",
+                                "AIB-AXYS",
+                                "Dyer & Blair",
+                                "Standard Investment Bank",
+                                "Kingdom Securities"
+                            ] %}
+                            <option
+                                value="{{ broker_name }}"
+                                {% if current_broker ==
+                                    broker_name %}
+                                selected
+                                {% endif %}
+                            >
+                                {{ broker_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label class="form-field">
+                        <span>Charge Rate (%)</span>
+
+                        <input
+                            type="number"
+                            name="charge_rate"
+                            id="setting-charge-rate"
+                            min="0"
+                            step="0.01"
+                            value="{{ investment_settings.get(
+                                'charge_rate',
+                                1.5
+                            ) }}"
+                            required
+                        >
+                    </label>
+
+                    <label class="form-field">
+                        <span>Currency</span>
+
+                        {% set current_currency =
+                            investment_settings.get(
+                                "currency",
+                                "KES"
+                            )
+                        %}
+
+                        <select
+                            name="currency"
+                            id="setting-currency"
+                        >
+                            {% for currency_option in [
+                                "KES",
+                                "USD"
+                            ] %}
+                            <option
+                                value="{{ currency_option }}"
+                                {% if current_currency ==
+                                    currency_option %}
+                                selected
+                                {% endif %}
+                            >
+                                {{ currency_option }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label class="form-field">
+                        <span>Settlement</span>
+
+                        {% set current_settlement =
+                            investment_settings.get(
+                                "settlement",
+                                "T+3"
+                            )
+                        %}
+
+                        <select
+                            name="settlement"
+                            id="setting-settlement"
+                        >
+                            {% for option in [
+                                "T+0",
+                                "T+1",
+                                "T+2",
+                                "T+3"
+                            ] %}
+                            <option
+                                value="{{ option }}"
+                                {% if current_settlement ==
+                                    option %}
+                                selected
+                                {% endif %}
+                            >
+                                {{ option }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label class="form-field">
+                        <span>Auto Calculate Charges</span>
+
+                        <select
+                            name="auto_calculate"
+                            id="setting-auto-calculate"
+                        >
+                            <option
+                                value="1"
+                                {% if
+                                    investment_settings.get(
+                                        "auto_calculate",
+                                        1
+                                    )|int == 1
+                                %}
+                                selected
+                                {% endif %}
+                            >
+                                Yes
+                            </option>
+
+                            <option
+                                value="0"
+                                {% if
+                                    investment_settings.get(
+                                        "auto_calculate",
+                                        1
+                                    )|int == 0
+                                %}
+                                selected
+                                {% endif %}
+                            >
+                                No
+                            </option>
+                        </select>
+                    </label>
+
+                    <label class="form-field">
+                        <span>Manual Charge Override</span>
+
+                        <select
+                            name="manual_override"
+                            id="setting-manual-override"
+                        >
+                            <option
+                                value="0"
+                                {% if
+                                    investment_settings.get(
+                                        "manual_override",
+                                        0
+                                    )|int == 0
+                                %}
+                                selected
+                                {% endif %}
+                            >
+                                No
+                            </option>
+
+                            <option
+                                value="1"
+                                {% if
+                                    investment_settings.get(
+                                        "manual_override",
+                                        0
+                                    )|int == 1
+                                %}
+                                selected
+                                {% endif %}
+                            >
+                                Yes
+                            </option>
+                        </select>
+                    </label>
+
+                </div>
+
+                <div class="form-actions">
+                    <button
+                        type="submit"
+                        class="button button-secondary"
+                    >
+                        Save Investment Settings
+                    </button>
+                </div>
+            </form>
+        </article>
+
+
+        <!-- RECORD INVESTMENT TRADE -->
+        <article class="portfolio-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="panel-kicker">
+                        Transaction
+                    </span>
+
+                    <h2>Record Investment Trade</h2>
+
+                    <p>
+                        Enter the final values exactly as
+                        executed by the broker.
+                    </p>
+                </div>
+            </div>
+
+            <form
+                method="post"
+                action="{{ url_for('ziidi_copilot') }}"
+                class="portfolio-form trade-form"
+                id="investment-trade-form"
+            >
+                <input
+                    type="hidden"
+                    name="form_action"
+                    value="trade"
+                >
+
+                <div class="trade-side-selector">
+                    <label>
+                        <input
+                            type="radio"
+                            name="side"
+                            value="BUY"
+                            checked
+                        >
+                        <span>BUY</span>
+                    </label>
+
+                    <label>
+                        <input
+                            type="radio"
+                            name="side"
+                            value="SELL"
+                        >
+                        <span>SELL</span>
+                    </label>
+                </div>
+
+                <div class="form-grid">
+
+                    <label class="form-field">
+                        <span>Stock Symbol</span>
+
+                        <select
+                            name="symbol"
+                            id="trade-symbol"
+                            required
+                        >
+                            <option value="">
+                                Select stock symbol
+                            </option>
+
+                            <option value="ABSA" data-company="Absa Bank Kenya PLC">ABSA</option>
+                            <option value="BAMB" data-company="Bamburi Cement PLC">BAMB</option>
+                            <option value="BAT" data-company="British American Tobacco Kenya PLC">BAT</option>
+                            <option value="BOC" data-company="BOC Kenya PLC">BOC</option>
+                            <option value="BRIT" data-company="Britam Holdings PLC">BRIT</option>
+                            <option value="CARB" data-company="Carbacid Investments PLC">CARB</option>
+                            <option value="CIC" data-company="CIC Insurance Group PLC">CIC</option>
+                            <option value="COOP" data-company="Co-operative Bank of Kenya Ltd">COOP</option>
+                            <option value="DTK" data-company="Diamond Trust Bank Kenya Ltd">DTK</option>
+                            <option value="EABL" data-company="East African Breweries PLC">EABL</option>
+                            <option value="EQTY" data-company="Equity Group Holdings PLC">EQTY</option>
+                            <option value="FMLY" data-company="Family Bank Ltd">FMLY</option>
+                            <option value="HFCK" data-company="HF Group PLC">HFCK</option>
+                            <option value="IMH" data-company="I&M Group PLC">IMH</option>
+                            <option value="JUB" data-company="Jubilee Holdings Ltd">JUB</option>
+                            <option value="KCB" data-company="KCB Group PLC">KCB</option>
+                            <option value="KEGN" data-company="KenGen PLC">KEGN</option>
+                            <option value="KPLC" data-company="Kenya Power and Lighting Company PLC">KPLC</option>
+                            <option value="KQ" data-company="Kenya Airways PLC">KQ</option>
+                            <option value="KNRE" data-company="Kenya Reinsurance Corporation Ltd">KNRE</option>
+                            <option value="LIMT" data-company="Limuru Tea PLC">LIMT</option>
+                            <option value="LKL" data-company="Longhorn Publishers PLC">LKL</option>
+                            <option value="NCBA" data-company="NCBA Group PLC">NCBA</option>
+                            <option value="NMG" data-company="Nation Media Group PLC">NMG</option>
+                            <option value="SCBK" data-company="Standard Chartered Bank Kenya Ltd">SCBK</option>
+                            <option value="SCOM" data-company="Safaricom PLC">SCOM</option>
+                            <option value="TOTL" data-company="TotalEnergies Marketing Kenya PLC">TOTL</option>
+                            <option value="UMME" data-company="Umeme Ltd">UMME</option>
+                            <option value="UNGA" data-company="Unga Group PLC">UNGA</option>
+                            <option value="WTK" data-company="Williamson Tea Kenya PLC">WTK</option>
+                        </select>
+                    </label>
+
+                    <label class="form-field">
+                        <span>Company Name</span>
+
+                        <select
+                            name="company_name"
+                            id="trade-company-name"
+                            required
+                        >
+                            <option value="">
+                                Select company
+                            </option>
+
+                            <option value="Absa Bank Kenya PLC" data-symbol="ABSA">Absa Bank Kenya PLC</option>
+                            <option value="Bamburi Cement PLC" data-symbol="BAMB">Bamburi Cement PLC</option>
+                            <option value="British American Tobacco Kenya PLC" data-symbol="BAT">British American Tobacco Kenya PLC</option>
+                            <option value="BOC Kenya PLC" data-symbol="BOC">BOC Kenya PLC</option>
+                            <option value="Britam Holdings PLC" data-symbol="BRIT">Britam Holdings PLC</option>
+                            <option value="Carbacid Investments PLC" data-symbol="CARB">Carbacid Investments PLC</option>
+                            <option value="CIC Insurance Group PLC" data-symbol="CIC">CIC Insurance Group PLC</option>
+                            <option value="Co-operative Bank of Kenya Ltd" data-symbol="COOP">Co-operative Bank of Kenya Ltd</option>
+                            <option value="Diamond Trust Bank Kenya Ltd" data-symbol="DTK">Diamond Trust Bank Kenya Ltd</option>
+                            <option value="East African Breweries PLC" data-symbol="EABL">East African Breweries PLC</option>
+                            <option value="Equity Group Holdings PLC" data-symbol="EQTY">Equity Group Holdings PLC</option>
+                            <option value="Family Bank Ltd" data-symbol="FMLY">Family Bank Ltd</option>
+                            <option value="HF Group PLC" data-symbol="HFCK">HF Group PLC</option>
+                            <option value="I&amp;M Group PLC" data-symbol="IMH">I&amp;M Group PLC</option>
+                            <option value="Jubilee Holdings Ltd" data-symbol="JUB">Jubilee Holdings Ltd</option>
+                            <option value="KCB Group PLC" data-symbol="KCB">KCB Group PLC</option>
+                            <option value="KenGen PLC" data-symbol="KEGN">KenGen PLC</option>
+                            <option value="Kenya Power and Lighting Company PLC" data-symbol="KPLC">Kenya Power and Lighting Company PLC</option>
+                            <option value="Kenya Airways PLC" data-symbol="KQ">Kenya Airways PLC</option>
+                            <option value="Kenya Reinsurance Corporation Ltd" data-symbol="KNRE">Kenya Reinsurance Corporation Ltd</option>
+                            <option value="Limuru Tea PLC" data-symbol="LIMT">Limuru Tea PLC</option>
+                            <option value="Longhorn Publishers PLC" data-symbol="LKL">Longhorn Publishers PLC</option>
+                            <option value="NCBA Group PLC" data-symbol="NCBA">NCBA Group PLC</option>
+                            <option value="Nation Media Group PLC" data-symbol="NMG">Nation Media Group PLC</option>
+                            <option value="Standard Chartered Bank Kenya Ltd" data-symbol="SCBK">Standard Chartered Bank Kenya Ltd</option>
+                            <option value="Safaricom PLC" data-symbol="SCOM">Safaricom PLC</option>
+                            <option value="TotalEnergies Marketing Kenya PLC" data-symbol="TOTL">TotalEnergies Marketing Kenya PLC</option>
+                            <option value="Umeme Ltd" data-symbol="UMME">Umeme Ltd</option>
+                            <option value="Unga Group PLC" data-symbol="UNGA">Unga Group PLC</option>
+                            <option value="Williamson Tea Kenya PLC" data-symbol="WTK">Williamson Tea Kenya PLC</option>
+                        </select>
+                    </label>
+
+                    <label class="form-field">
+                        <span>Number of Shares</span>
+
+                        <input
+                            type="number"
+                            name="quantity"
+                            id="trade-quantity"
+                            min="1"
+                            step="1"
+                            required
+                        >
+                    </label>
+
+                    <label class="form-field">
+                        <span>Executed Price</span>
+
+                        <input
+                            type="number"
+                            name="executed_price"
+                            id="trade-price"
+                            min="0.0001"
+                            step="0.0001"
+                            required
+                        >
+                    </label>
+
+                    <label class="form-field">
+                        <span>Trade Date</span>
+
+                        <input
+                            type="date"
+                            name="trade_date"
+                            id="trade-date"
+                            value="{{ today }}"
+                            required
+                        >
+                    </label>
+
+                    <label class="form-field">
+                        <span>Settlement Date</span>
+
+                        <input
+                            type="date"
+                            name="settlement_date"
+                            id="settlement-date"
+                        >
+                    </label>
+
+                    <label class="form-field">
+                        <span>Gross Amount</span>
+
+                        <input
+                            type="number"
+                            name="gross_amount"
+                            id="gross-amount"
+                            min="0"
+                            step="0.01"
+                            placeholder="Auto calculated"
+                        >
+                    </label>
+
+                    <label class="form-field">
+                        <span>Charges</span>
+
+                        <input
+                            type="number"
+                            name="charges"
+                            id="trade-charges"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                        >
+                    </label>
+
+                    <label class="form-field form-field-wide">
+                        <span>Net Amount</span>
+
+                        <input
+                            type="number"
+                            name="net_amount"
+                            id="net-amount"
+                            min="0"
+                            step="0.01"
+                            placeholder="Auto calculated"
+                        >
+                    </label>
+
+                    <label class="form-field">
+                        <span>Reference Number</span>
+
+                        <input
+                            type="text"
+                            name="reference_number"
+                            placeholder="Broker reference"
+                        >
+                    </label>
+
+                    <label class="form-field form-field-wide">
+                        <span>Notes</span>
+
+                        <textarea
+                            name="notes"
+                            rows="3"
+                            placeholder="Optional trade notes"
+                        ></textarea>
+                    </label>
+
+                </div>
+
+                <div class="trade-calculation-preview">
+                    <div>
+                        <span>Calculated Share Cost</span>
+                        <strong id="preview-gross">
+                            KSh 0.00
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Charges</span>
+                        <strong id="preview-charges">
+                            KSh 0.00
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Estimated Total</span>
+                        <strong id="preview-net">
+                            KSh 0.00
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button
+                        type="submit"
+                        class="button button-primary"
+                        id="save-trade-button"
+                    >
+                        Save BUY Trade
+                    </button>
+                </div>
+            </form>
+        </article>
+
+    </section>
+
+
+    <!-- ==================================================
+         CURRENT POSITIONS
+    =================================================== -->
+    <section class="portfolio-section">
+        <div class="section-heading">
+            <div>
+                <span class="panel-kicker">
+                    Holdings
+                </span>
+
+                <h2>Current Portfolio Positions</h2>
+            </div>
+
+            <span class="section-count">
+                {{ summary.open_positions }} open
+            </span>
+        </div>
+
+        {% if positions %}
+        <div class="portfolio-table-wrapper">
+            <table class="portfolio-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Shares</th>
+                        <th>Average Cost</th>
+                        <th>Cost Basis</th>
+                        <th>Realized P/L</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for position in positions %}
+                    <tr>
+                        <td>
+                            <strong>
+                                {{ position.symbol }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ position.quantity }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(
+                                position.average_cost
+                            ) }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(
+                                position.cost_basis
+                            ) }}
+                        </td>
+
+                        <td
+                            class="{% if
+                                position.realized_profit_loss >= 0
+                            %}positive{% else %}negative{% endif %}"
+                        >
+                            KSh
+                            {{ "%.2f"|format(
+                                position.realized_profit_loss
+                            ) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <div class="portfolio-empty-state">
+            No open investment positions have been recorded.
+        </div>
+        {% endif %}
+    </section>
+
+
+    <!-- ==================================================
+         TRADE HISTORY
+    =================================================== -->
+    <section class="portfolio-section">
+        <div class="section-heading">
+            <div>
+                <span class="panel-kicker">
+                    Transactions
+                </span>
+
+                <h2>Investment Trade History</h2>
+            </div>
+
+            <span class="section-count">
+                {{ summary.total_trades }} trades
+            </span>
+        </div>
+
+        {% if trades %}
+        <div class="portfolio-table-wrapper">
+            <table class="portfolio-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Side</th>
+                        <th>Symbol</th>
+                        <th>Shares</th>
+                        <th>Price</th>
+                        <th>Gross</th>
+                        <th>Charges</th>
+                        <th>Net Amount</th>
+                        <th>Reference</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for trade in trades %}
+                    <tr>
+                        <td>
+                            {{ trade.trade_date }}
+                        </td>
+
+                        <td>
+                            <span
+                                class="trade-badge trade-badge-{{ trade.side|lower }}"
+                            >
+                                {{ trade.side }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <strong>
+                                {{ trade.symbol }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ trade.quantity }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(
+                                trade.executed_price
+                            ) }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(
+                                trade.gross_amount
+                            ) }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(
+                                trade.charges
+                            ) }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(
+                                trade.net_amount
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ trade.reference_number or "—" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <div class="portfolio-empty-state">
+            No investment trades have been recorded.
+        </div>
+        {% endif %}
+    </section>
+
+
+    <footer class="portfolio-footer">
+        MIP PRO Enterprise {{ version }}
+    </footer>
+
+</main>
+
+<script
+    src="{{ url_for(
+        'static',
+        filename='js/investment_portfolio/utils.js'
+    ) }}"
+></script>
+
+<script
+    src="{{ url_for(
+        'static',
+        filename='js/investment_portfolio/calculations.js'
+    ) }}"
+></script>
+
+<script
+    src="{{ url_for(
+        'static',
+        filename='js/investment_portfolio/settlement.js'
+    ) }}"
+></script>
+
+<script
+    src="{{ url_for(
+        'static',
+        filename='js/investment_portfolio/ui.js'
+    ) }}"
+></script>
+
+<script
+    src="{{ url_for(
+        'static',
+        filename='js/investment_portfolio/main.js'
+    ) }}"
+></script>
+</body>
+</html>

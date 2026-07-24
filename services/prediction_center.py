@@ -14,6 +14,9 @@ from services.market_regime_engine import (
     build_market_regime,
 )
 from services.predictive_engine import build_predictions
+from services.portfolio_optimizer import (
+    build_optimized_portfolio,
+)
 from services.risk_engine import build_market_risk
 from services.screener_engine import run_screener
 from services.technical_analysis import analyze_market
@@ -233,8 +236,9 @@ def build_prediction_center() -> Dict[str, Any]:
     technicals = analyze_market(stocks)
 
     predictions = build_predictions(
-        stocks,
+stocks,
         technicals,
+        limit=None,
     )
 
     market_risk = build_market_risk(stocks)
@@ -258,6 +262,10 @@ def build_prediction_center() -> Dict[str, Any]:
     )
 
     screener_rows = run_screener()
+
+    portfolio_optimizer = build_optimized_portfolio(
+        screener_results=screener_rows,
+    )
 
     profiles = build_conviction_profiles(
         screener_rows=screener_rows,
@@ -364,6 +372,15 @@ def build_prediction_center() -> Dict[str, Any]:
         "technical_count": len(technicals),
         "prediction_count":
             len(predictions),
+        "risk_engine":
+            market_risk,
+        "screener": {
+            "rows": screener_rows,
+            "results": screener_rows,
+            "count": len(screener_rows),
+        },
+        "portfolio_optimizer":
+            portfolio_optimizer,
         "risk_market_summary":
             market_risk,
         "breadth": {

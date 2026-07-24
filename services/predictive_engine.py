@@ -110,7 +110,7 @@ def predict_stock(
 def build_predictions(
     stocks: List[Dict[str, Any]],
     technicals: List[Dict[str, Any]],
-    limit: int = 20,
+    limit: int | None = None,
 ) -> List[Dict[str, Any]]:
     technical_map = {
         item.get("symbol"): item
@@ -135,4 +135,8 @@ def build_predictions(
         reverse=True,
     )
 
-    return predictions[:limit]
+    if limit is None:
+        return predictions
+
+    safe_limit = max(0, int(limit))
+    return predictions[:safe_limit]

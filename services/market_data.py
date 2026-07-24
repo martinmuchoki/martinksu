@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List
 
-from providers.mystocks_africa_provider import MyStocksAfricaProvider
+from services.market_repository import MarketRepository
 from services.database import (
     get_conn,
     init_db,
@@ -13,7 +13,7 @@ from services.database import (
 )
 
 
-_provider = MyStocksAfricaProvider()
+_repository = MarketRepository()
 
 
 def ensure_market_data() -> None:
@@ -97,12 +97,14 @@ def get_stocks() -> List[Dict[str, Any]]:
     ensure_market_data()
 
     try:
-        quotes = _provider.fetch_quotes()
+        quotes = _repository.refresh()
 
-        stocks = [
-            _normalize_live_stock(symbol, quote)
-            for symbol, quote in quotes.items()
-        ]
+        if not quotes:
+            raise RuntimeError(
+                "MarketRepository returned no live quotes."
+            )
+
+        stocks = list(quotes.values())
 
         return sorted(stocks, key=lambda item: item["symbol"])
 

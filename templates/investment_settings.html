@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>MIP PRO — Investment Settings</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/v115.css') }}"
+    >
+
+    <style>
+        .settings-page {
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .settings-header h1 {
+            margin: 0 0 8px;
+        }
+
+        .settings-header p {
+            margin: 0;
+            opacity: 0.75;
+        }
+
+        .settings-nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .settings-nav a {
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: rgba(148, 163, 184, 0.14);
+            color: inherit;
+        }
+
+        .settings-card {
+            background: var(--panel-bg, rgba(15, 23, 42, 0.76));
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14);
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-field label {
+            font-weight: 700;
+        }
+
+        .form-field input,
+        .form-field select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(15, 23, 42, 0.45);
+            color: inherit;
+        }
+
+        .settings-actions {
+            margin-top: 22px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .save-button {
+            border: 0;
+            border-radius: 11px;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-weight: 800;
+            background: #22c55e;
+            color: #04120a;
+        }
+
+        .message {
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            background: rgba(34, 197, 94, 0.16);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+        }
+
+        .error {
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .settings-note {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(148, 163, 184, 0.10);
+            opacity: 0.86;
+        }
+
+        @media (max-width: 760px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-page {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="settings-page">
+        <header class="settings-header">
+            <div>
+                <h1>Investment Settings</h1>
+                <p>
+                    Configure broker charges, currency,
+                    settlement and trade calculation rules.
+                </p>
+            </div>
+
+            <nav class="settings-nav">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('ziidi_copilot') }}">
+                    Ziidi Co-Pilot
+                </a>
+            </nav>
+        </header>
+
+        {% if message %}
+            <div class="message">{{ message }}</div>
+        {% endif %}
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <section class="settings-card">
+            <form method="post">
+                <div class="settings-grid">
+                    <div class="form-field">
+                        <label for="broker">Broker</label>
+                        <select id="broker" name="broker" required>
+                            <option
+                                value="Ziidi"
+                                {% if settings.broker == "Ziidi" %}
+                                    selected
+                                {% endif %}
+                            >
+                                Ziidi
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="charge_rate">
+                            Default Charge Rate (%)
+                        </label>
+                        <input
+                            id="charge_rate"
+                            name="charge_rate"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value="{{ settings.charge_rate }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="currency">Currency</label>
+                        <select id="currency" name="currency" required>
+                            <option
+                                value="KES"
+                                {% if settings.currency == "KES" %}
+                                    selected
+                                {% endif %}
+                            >
+                                KES
+                            </option>
+                            <option
+                                value="USD"
+                                {% if settings.currency == "USD" %}
+                                    selected
+                                {% endif %}
+                            >
+                                USD
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="settlement">Settlement</label>
+                        <select id="settlement" name="settlement" required>
+                            {% for option in ["T+0", "T+1", "T+2", "T+3"] %}
+                                <option
+                                    value="{{ option }}"
+                                    {% if settings.settlement == option %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ option }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="auto_calculate">
+                            Auto Calculate Charges
+                        </label>
+                        <select
+                            id="auto_calculate"
+                            name="auto_calculate"
+                            required
+                        >
+                            <option
+                                value="1"
+                                {% if settings.auto_calculate %}
+                                    selected
+                                {% endif %}
+                            >
+                                Enabled
+                            </option>
+                            <option
+                                value="0"
+                                {% if not settings.auto_calculate %}
+                                    selected
+                                {% endif %}
+                            >
+                                Disabled
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="manual_override">
+                            Manual Charge Override
+                        </label>
+                        <select
+                            id="manual_override"
+                            name="manual_override"
+                            required
+                        >
+                            <option
+                                value="0"
+                                {% if not settings.manual_override %}
+                                    selected
+                                {% endif %}
+                            >
+                                Disabled
+                            </option>
+                            <option
+                                value="1"
+                                {% if settings.manual_override %}
+                                    selected
+                                {% endif %}
+                            >
+                                Enabled
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="save-button" type="submit">
+                        Save Settings
+                    </button>
+
+                    <span>
+                        Last updated:
+                        {{ settings.updated_at or "Not available" }}
+                    </span>
+                </div>
+            </form>
+
+            <div class="settings-note">
+                BUY trades will add charges to the gross value.
+                SELL trades will deduct charges from the gross proceeds.
+            </div>
+        </section>
+    </main>
+</body>
+</html>

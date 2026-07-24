@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from werkzeug.security import check_password_hash
 
 from flask import Flask, render_template, jsonify, request, redirect, send_file, session, url_for, send_from_directory
+from services.decision_engine import get_ai_decision
 
 # BEGIN MIP PRO ZIIDI COPILOT IMPORTS
 from services.ziidi_copilot import (
@@ -334,8 +335,84 @@ def dashboard():
     )
 
 
+    # ---------------------------------------------------------
+    # AI Decision Engine — Version 11.7
+    # Single authoritative source for dashboard decisions.
+    # ---------------------------------------------------------
+    try:
+        market_breadth = get_market_breadth()
+
+        decision = get_ai_decision(
+            signals=persisted_signals,
+            market={
+                "status": (
+                    regime.get(
+                        "label",
+                        regime.get(
+                            "regime",
+                            regime.get(
+                                "market_regime",
+                                "Neutral / Selective",
+                            ),
+                        ),
+                    )
+                    if isinstance(regime, dict)
+                    else str(regime or "Neutral / Selective")
+                ),
+                "ai_confidence": persisted_signal_summary.get(
+                    "average_confidence",
+                    0,
+                ),
+            },
+            regime=regime if isinstance(regime, dict) else {
+                "label": str(regime or "Neutral / Selective")
+            },
+            risk_metrics=(
+                risk_metrics
+                if isinstance(risk_metrics, dict)
+                else {"risk_level": str(risk_metrics or "UNKNOWN")}
+            ),
+            breadth=market_breadth,
+            institutional=(
+                sector_rotation
+                if isinstance(sector_rotation, dict)
+                else {}
+            ),
+        )
+
+    except Exception:
+        app.logger.exception(
+            "AI Decision Engine failed during dashboard rendering"
+        )
+
+        decision = {
+            "market_state": "Unavailable",
+            "market_risk": "UNKNOWN",
+            "decision": "WAIT",
+            "decision_label": "WAIT",
+            "decision_headline": (
+                "Decision intelligence is temporarily unavailable."
+            ),
+            "decision_reason": [
+                "The Decision Engine could not process the current market data."
+            ],
+            "confidence": 0,
+            "qualified_opportunities": [],
+            "qualified_count": 0,
+            "leading_signal": None,
+            "breadth": {},
+            "institutional": {},
+            "thresholds": {},
+        }
+
+    template_name = (
+        "dashboard_v117.html"
+        if request.args.get("ui") == "v117"
+        else "dashboard_v115.html"
+    )
+
     return render_template(
-        "dashboard_v115.html",
+        template_name,
         version=VERSION,
         dashboard=dashboard_data,
         picks=dashboard_data["top_picks"],
@@ -363,7 +440,113 @@ def dashboard():
         persisted_signals=persisted_signals,
         persisted_top_signal=persisted_top_signal,
         persisted_signal_summary=persisted_signal_summary,
+        decision=decision,
     )
+
+
+@app.route("/api/v11.7/decision")
+def v117_decision():
+    """
+    Return the authoritative Version 11.7 Decision Object.
+    """
+    market = get_market_snapshot()
+
+    try:
+        technicals = analyze_market(
+            market.get("stocks", [])
+        )
+    except Exception:
+        app.logger.exception(
+            "Decision API technical analysis failed"
+        )
+        technicals = []
+
+    risk_metrics = build_market_risk(
+        market.get("stocks", [])
+    )
+
+    regime = detect_market_regime(
+        market,
+        technicals,
+        risk_metrics,
+    )
+
+    sector_rotation = analyze_sector_rotation(
+        market.get("stocks", [])
+    )
+
+    try:
+        persisted_signals = (
+            get_signal_service()
+            .get_top_signals(limit=10)
+        )
+
+        persisted_signal_summary = (
+            get_signal_service()
+            .get_dashboard_summary(limit=10)
+        )
+    except Exception:
+        app.logger.exception(
+            "Decision API SignalService read failed"
+        )
+        persisted_signals = []
+        persisted_signal_summary = {
+            "average_confidence": 0,
+        }
+
+    decision = get_ai_decision(
+        signals=persisted_signals,
+        market={
+            "status": (
+                regime.get(
+                    "label",
+                    regime.get(
+                        "regime",
+                        regime.get(
+                            "market_regime",
+                            "Neutral / Selective",
+                        ),
+                    ),
+                )
+                if isinstance(regime, dict)
+                else str(
+                    regime or "Neutral / Selective"
+                )
+            ),
+            "ai_confidence": (
+                persisted_signal_summary.get(
+                    "average_confidence",
+                    0,
+                )
+            ),
+        },
+        regime=(
+            regime
+            if isinstance(regime, dict)
+            else {
+                "label": str(
+                    regime or "Neutral / Selective"
+                )
+            }
+        ),
+        risk_metrics=(
+            risk_metrics
+            if isinstance(risk_metrics, dict)
+            else {
+                "risk_level": str(
+                    risk_metrics or "UNKNOWN"
+                )
+            }
+        ),
+        breadth=get_market_breadth(),
+        institutional=(
+            sector_rotation
+            if isinstance(sector_rotation, dict)
+            else {}
+        ),
+    )
+
+    return jsonify(decision)
 
 
 @app.route("/health")

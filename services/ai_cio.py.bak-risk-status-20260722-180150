@@ -1,0 +1,4626 @@
+"""
+MIP PRO — PHASE 12.2 PART 1
+AI CHIEF INVESTMENT OFFICER CORE ORCHESTRATION
+
+Responsibilities
+----------------
+1. Accept outputs from existing specialist engines.
+2. Normalize inconsistent engine payload shapes.
+3. Match records by NSE symbol.
+4. Assemble Phase 12.1 AI CIO decision-contract payloads.
+5. Validate every decision through services.ai_cio_contract.
+
+This module is read-only.
+
+It does not:
+- write to the signal repository;
+- modify specialist-engine results;
+- expose Flask routes;
+- alter dashboard behavior;
+- restart services;
+- rank decisions;
+- cache decisions;
+- publish decisions.
+
+Ranking, summaries, caching, and comparison mode are added in later
+Phase 12.2 implementation parts.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence
+
+from services.ai_cio_policy import (
+    PolicyInput,
+    evaluate_ai_cio_policy,
+)
+
+from services.ai_cio_contract import (
+    AICIODecision,
+    DecisionContractError,
+    build_ai_cio_decision,
+)
+
+
+MappingType = Mapping[str, Any]
+Provider = Callable[[], Any]
+
+
+class AICIOOrchestrationError(RuntimeError):
+    """Raised when AI CIO source orchestration cannot be completed."""
+
+
+@dataclass(frozen=True)
+class AICIOSourceBundle:
+    """
+    Normalized source inputs required to assemble AI CIO decisions.
+
+    All fields remain generic dictionaries so the AI CIO can consume current
+    specialist-engine output without forcing those engines to change.
+    """
+
+    predictions: List[Dict[str, Any]] = field(default_factory=list)
+    committee: List[Dict[str, Any]] = field(default_factory=list)
+    risk: List[Dict[str, Any]] = field(default_factory=list)
+    portfolio: List[Dict[str, Any]] = field(default_factory=list)
+    screener: List[Dict[str, Any]] = field(default_factory=list)
+
+    market_regime: Dict[str, Any] = field(default_factory=dict)
+    learning: Dict[str, Any] = field(default_factory=dict)
+    breadth: Dict[str, Any] = field(default_factory=dict)
+
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class AICIODecisionAssembly:
+    """
+    Result of assembling one symbol.
+
+    `decision` is the validated Phase 12.1 contract.
+    `warnings` contains non-fatal adapter or missing-data observations.
+    """
+
+    symbol: str
+    decision: AICIODecision
+    warnings: List[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class AICIOBuildResult:
+    """
+    Core orchestration output.
+
+    Phase 12.2 Part 1 does not rank decisions. Results remain in source order.
+    """
+
+    decisions: List[AICIODecision]
+    assemblies: List[AICIODecisionAssembly]
+    errors: List[Dict[str, Any]]
+    source_counts: Dict[str, int]
+    metadata: Dict[str, Any]
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    if value in (None, ""):
+        return float(default)
+
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+    if result != result:
+        return float(default)
+
+    if result in (float("inf"), float("-inf")):
+        return float(default)
+
+    return result
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    if value in (None, ""):
+        return int(default)
+
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return int(default)
+
+
+def _clamp(value: Any, minimum: float, maximum: float) -> float:
+    return max(minimum, min(maximum, _safe_float(value)))
+
+
+def _normalize_symbol(value: Any) -> str:
+    return str(value or "").strip().upper()
+
+
+def _upper(value: Any, default: str = "") -> str:
+    text = str(value or default).strip().upper()
+    return text.replace(" ", "_").replace("-", "_")
+
+
+def _first_present(
+    source: MappingType,
+    keys: Sequence[str],
+    default: Any = None,
+) -> Any:
+    for key in keys:
+        if key in source and source.get(key) not in (None, ""):
+            return source.get(key)
+
+    return default
+
+
+def _first_mapping(
+    source: MappingType,
+    keys: Sequence[str],
+) -> Dict[str, Any]:
+    for key in keys:
+        value = source.get(key)
+
+        if isinstance(value, Mapping):
+            return dict(value)
+
+    return {}
+
+
+def _first_list(
+    source: MappingType,
+    keys: Sequence[str],
+) -> List[Any]:
+    for key in keys:
+        value = source.get(key)
+
+        if isinstance(value, list):
+            return list(value)
+
+        if isinstance(value, tuple):
+            return list(value)
+
+    return []
+
+
+def _merge_mappings(*sources: MappingType) -> Dict[str, Any]:
+    merged: Dict[str, Any] = {}
+
+    for source in sources:
+        if isinstance(source, Mapping):
+            merged.update(dict(source))
+
+    return merged
+
+
+def _as_mapping(value: Any) -> Dict[str, Any]:
+    if isinstance(value, Mapping):
+        return dict(value)
+
+    return {}
+
+
+def _as_records(
+    payload: Any,
+    *,
+    preferred_keys: Sequence[str] = (),
+) -> List[Dict[str, Any]]:
+    """
+    Convert common specialist-engine payload shapes into a record list.
+
+    Supported shapes:
+    - list[dict]
+    - tuple[dict]
+    - {"rows": [...]}
+    - {"results": [...]}
+    - {"decisions": [...]}
+    - {"predictions": [...]}
+    - {"stocks": [...]}
+    - {"data": [...]}
+    - {"SYMBOL": {...}, ...}
+    """
+
+    if payload is None:
+        return []
+
+    if isinstance(payload, (list, tuple)):
+        return [
+            dict(item)
+            for item in payload
+            if isinstance(item, Mapping)
+        ]
+
+    if not isinstance(payload, Mapping):
+        return []
+
+    source = dict(payload)
+
+    keys = list(preferred_keys) + [
+        "rows",
+        "results",
+        "items",
+        "data",
+        "stocks",
+        "signals",
+        "decisions",
+        "predictions",
+        "opportunities",
+        "profiles",
+        "portfolio",
+        "holdings",
+        "risk_metrics",
+    ]
+
+    for key in keys:
+        value = source.get(key)
+
+        if isinstance(value, (list, tuple)):
+            return [
+                dict(item)
+                for item in value
+                if isinstance(item, Mapping)
+            ]
+
+    records: List[Dict[str, Any]] = []
+
+    for key, value in source.items():
+        if not isinstance(value, Mapping):
+            continue
+
+        record = dict(value)
+
+        if not _normalize_symbol(
+            _first_present(
+                record,
+                (
+                    "symbol",
+                    "ticker",
+                    "code",
+                    "security",
+                ),
+            )
+        ):
+            record["symbol"] = _normalize_symbol(key)
+
+        records.append(record)
+
+    return records
+
+
+def _index_records(
+    records: Iterable[MappingType],
+) -> Dict[str, Dict[str, Any]]:
+    indexed: Dict[str, Dict[str, Any]] = {}
+
+    for raw_record in records:
+        record = dict(raw_record)
+
+        symbol = _normalize_symbol(
+            _first_present(
+                record,
+                (
+                    "symbol",
+                    "ticker",
+                    "code",
+                    "security",
+                    "instrument",
+                ),
+            )
+        )
+
+        if not symbol:
+            continue
+
+        if symbol in indexed:
+            indexed[symbol] = _merge_mappings(
+                indexed[symbol],
+                record,
+            )
+        else:
+            record["symbol"] = symbol
+            indexed[symbol] = record
+
+    return indexed
+
+
+def _normalize_percentage(
+    value: Any,
+    default: float = 0.0,
+) -> float:
+    numeric = _safe_float(value, default)
+
+    if 0.0 <= numeric <= 1.0:
+        numeric *= 100.0
+
+    return round(_clamp(numeric, 0.0, 100.0), 2)
+
+
+def _normalize_decision(
+    value: Any,
+    score: Any = 0.0,
+) -> str:
+    raw = _upper(value)
+
+    aliases = {
+        "STRONGBUY": "STRONG_BUY",
+        "ACCUMULATE": "BUY",
+        "LONG": "BUY",
+        "POSITIVE": "BUY",
+        "NEUTRAL": "HOLD",
+        "WAIT": "HOLD",
+        "WATCH": "HOLD",
+        "NO_ACTION": "HOLD",
+        "UNDERWEIGHT": "REDUCE",
+        "TAKE_PROFIT": "REDUCE",
+        "EXIT": "SELL",
+        "SHORT": "SELL",
+        "NEGATIVE": "SELL",
+        "REJECT": "AVOID",
+        "BLOCK": "AVOID",
+        "BLOCKED": "AVOID",
+    }
+
+    raw = aliases.get(raw, raw)
+
+    allowed = {
+        "STRONG_BUY",
+        "BUY",
+        "HOLD",
+        "REDUCE",
+        "SELL",
+        "AVOID",
+    }
+
+    if raw in allowed:
+        return raw
+
+    numeric_score = _safe_float(score, 50.0)
+
+    if numeric_score >= 85:
+        return "STRONG_BUY"
+
+    if numeric_score >= 65:
+        return "BUY"
+
+    if numeric_score >= 45:
+        return "HOLD"
+
+    if numeric_score >= 30:
+        return "REDUCE"
+
+    return "SELL"
+
+
+def _normalize_conviction(
+    value: Any,
+    confidence: Any,
+) -> str:
+    raw = _upper(value)
+
+    aliases = {
+        "VERYHIGH": "VERY_HIGH",
+        "STRONG": "HIGH",
+        "MODERATE": "MEDIUM",
+        "AVERAGE": "MEDIUM",
+        "WEAK": "LOW",
+        "VERYLOW": "VERY_LOW",
+    }
+
+    raw = aliases.get(raw, raw)
+
+    allowed = {
+        "VERY_HIGH",
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "VERY_LOW",
+    }
+
+    if raw in allowed:
+        return raw
+
+    normalized_confidence = _normalize_percentage(confidence)
+
+    if normalized_confidence >= 90:
+        return "VERY_HIGH"
+
+    if normalized_confidence >= 75:
+        return "HIGH"
+
+    if normalized_confidence >= 55:
+        return "MEDIUM"
+
+    if normalized_confidence >= 35:
+        return "LOW"
+
+    return "VERY_LOW"
+
+
+
+def _normalize_market_regime(value: Any) -> str:
+    """
+    Normalize directional and volatility-based market regimes.
+
+    Volatility regimes are preserved as first-class AI CIO regimes instead
+    of being converted to UNKNOWN.
+    """
+    if isinstance(value, Mapping):
+        value = _first_present(
+            value,
+            (
+                "regime",
+                "market_regime",
+                "normalized_regime",
+                "regime_name",
+                "classification",
+                "label",
+                "status",
+                "name",
+                "volatility_regime",
+            ),
+            "UNKNOWN",
+        )
+
+    raw = _upper(value, "UNKNOWN")
+
+    aliases = {
+        # Directional regimes
+        "STRONGBULLISH": "STRONG_BULLISH",
+        "STRONG_BULL": "STRONG_BULLISH",
+        "BULL": "BULLISH",
+        "BULL_MARKET": "BULLISH",
+        "POSITIVE": "BULLISH",
+        "RISK_ON": "BULLISH",
+
+        "SIDEWAYS": "NEUTRAL",
+        "RANGE": "NEUTRAL",
+        "RANGE_BOUND": "NEUTRAL",
+        "MIXED": "NEUTRAL",
+        "NORMAL": "NEUTRAL",
+
+        "DEFENSIVE": "CAUTIOUS",
+        "RISK_OFF": "CAUTIOUS",
+
+        "BEAR": "BEARISH",
+        "BEAR_MARKET": "BEARISH",
+        "NEGATIVE": "BEARISH",
+        "STRONGBEARISH": "STRONG_BEARISH",
+        "STRONG_BEAR": "STRONG_BEARISH",
+
+        # Volatility regimes
+        "VOLATILE": "HIGH_VOLATILITY",
+        "HIGH_VOL": "HIGH_VOLATILITY",
+        "HIGHVOLATILITY": "HIGH_VOLATILITY",
+        "VERY_HIGH_VOLATILITY": "HIGH_VOLATILITY",
+        "EXTREME_VOLATILITY": "HIGH_VOLATILITY",
+        "ELEVATED_VOLATILITY": "HIGH_VOLATILITY",
+        "TURBULENT": "HIGH_VOLATILITY",
+
+        "LOW_VOL": "LOW_VOLATILITY",
+        "LOWVOLATILITY": "LOW_VOLATILITY",
+        "VERY_LOW_VOLATILITY": "LOW_VOLATILITY",
+        "CALM": "LOW_VOLATILITY",
+        "STABLE": "LOW_VOLATILITY",
+        "QUIET": "LOW_VOLATILITY",
+
+        "MEDIUM_VOLATILITY": "NORMAL_VOLATILITY",
+        "MODERATE_VOLATILITY": "NORMAL_VOLATILITY",
+        "AVERAGE_VOLATILITY": "NORMAL_VOLATILITY",
+        "NORMALVOLATILITY": "NORMAL_VOLATILITY",
+    }
+
+    raw = aliases.get(raw, raw)
+
+    allowed = {
+        "STRONG_BULLISH",
+        "BULLISH",
+        "NEUTRAL",
+        "CAUTIOUS",
+        "BEARISH",
+        "STRONG_BEARISH",
+        "HIGH_VOLATILITY",
+        "NORMAL_VOLATILITY",
+        "LOW_VOLATILITY",
+        "UNKNOWN",
+    }
+
+    return raw if raw in allowed else "UNKNOWN"
+
+def _normalize_risk_status(
+    risk_record: MappingType,
+) -> str:
+    veto = bool(
+        _first_present(
+            risk_record,
+            (
+                "risk_veto",
+                "veto",
+                "blocked",
+                "is_blocked",
+            ),
+            False,
+        )
+    )
+
+    if veto:
+        return "VETOED"
+
+    raw = _upper(
+        _first_present(
+            risk_record,
+            (
+                "risk_status",
+                "approval_status",
+                "status",
+                "decision",
+            ),
+        )
+    )
+
+    aliases = {
+        "PASS": "APPROVED",
+        "OK": "APPROVED",
+        "SAFE": "APPROVED",
+        "LOW": "APPROVED",
+        "MEDIUM": "APPROVED_WITH_CAUTION",
+        "MODERATE": "APPROVED_WITH_CAUTION",
+        "CAUTION": "APPROVED_WITH_CAUTION",
+        "HIGH": "APPROVED_WITH_CAUTION",
+        "FAIL": "VETOED",
+        "BLOCK": "VETOED",
+        "BLOCKED": "VETOED",
+        "REJECTED": "VETOED",
+        "UNKNOWN": "INSUFFICIENT_DATA",
+    }
+
+    raw = aliases.get(raw, raw)
+
+    allowed = {
+        "APPROVED",
+        "APPROVED_WITH_CAUTION",
+        "VETOED",
+        "INSUFFICIENT_DATA",
+    }
+
+    if raw in allowed:
+        return raw
+
+    risk_score = _safe_float(
+        _first_present(
+            risk_record,
+            (
+                "risk_score",
+                "score",
+                "safety_score",
+            ),
+            0.0,
+        )
+    )
+
+    if risk_score <= 0:
+        return "INSUFFICIENT_DATA"
+
+    if risk_score >= 70:
+        return "APPROVED"
+
+    if risk_score >= 40:
+        return "APPROVED_WITH_CAUTION"
+
+    return "VETOED"
+
+
+def _extract_reasons(
+    *sources: MappingType,
+    keys: Sequence[str],
+) -> List[str]:
+    reasons: List[str] = []
+
+    for source in sources:
+        for key in keys:
+            value = source.get(key)
+
+            if isinstance(value, str):
+                text = value.strip()
+
+                if text and text not in reasons:
+                    reasons.append(text)
+
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    text = str(item or "").strip()
+
+                    if text and text not in reasons:
+                        reasons.append(text)
+
+    return reasons[:20]
+
+
+def _source_score(
+    source: MappingType,
+    keys: Sequence[str],
+    default: float = 0.0,
+) -> float:
+    return _normalize_percentage(
+        _first_present(
+            source,
+            keys,
+            default,
+        ),
+        default,
+    )
+
+
+def _extract_price_plan(
+    prediction: MappingType,
+    committee: MappingType,
+    screener: MappingType,
+) -> Dict[str, Any]:
+    nested = _merge_mappings(
+        _first_mapping(
+            prediction,
+            ("price_plan", "trade_plan", "levels"),
+        ),
+        _first_mapping(
+            committee,
+            ("price_plan", "trade_plan", "levels"),
+        ),
+    )
+
+    entry = _first_present(
+        nested,
+        ("entry_price", "entry", "current_price", "price"),
+        _first_present(
+            prediction,
+            ("entry_price", "entry", "current_price", "price", "last_price"),
+            _first_present(
+                screener,
+                ("entry_price", "current_price", "price", "last_price"),
+                0.0,
+            ),
+        ),
+    )
+
+    target = _first_present(
+        nested,
+        ("target_price", "target", "take_profit"),
+        _first_present(
+            prediction,
+            ("target_price", "target", "predicted_price", "forecast_price"),
+            _first_present(
+                committee,
+                ("target_price", "target", "take_profit"),
+                0.0,
+            ),
+        ),
+    )
+
+    stop = _first_present(
+        nested,
+        ("stop_loss", "stop", "protective_stop"),
+        _first_present(
+            committee,
+            ("stop_loss", "stop", "protective_stop"),
+            _first_present(
+                screener,
+                ("stop_loss", "stop", "protective_stop"),
+                0.0,
+            ),
+        ),
+    )
+
+    expected_return = _first_present(
+        nested,
+        ("expected_return_pct", "expected_return", "return_pct"),
+        _first_present(
+            prediction,
+            (
+                "expected_return_pct",
+                "expected_return",
+                "forecast_return_pct",
+                "upside_pct",
+            ),
+            0.0,
+        ),
+    )
+
+    return {
+        "entry_price": _safe_float(entry),
+        "target_price": _safe_float(target),
+        "stop_loss": _safe_float(stop),
+        "risk_reward_ratio": _safe_float(
+            _first_present(
+                nested,
+                (
+                    "risk_reward_ratio",
+                    "risk_reward",
+                    "rr_ratio",
+                ),
+                _first_present(
+                    committee,
+                    (
+                        "risk_reward_ratio",
+                        "risk_reward",
+                        "rr_ratio",
+                    ),
+                    0.0,
+                ),
+            )
+        ),
+        "expected_return_pct": _safe_float(expected_return),
+        "downside_risk_pct": _safe_float(
+            _first_present(
+                nested,
+                (
+                    "downside_risk_pct",
+                    "downside_pct",
+                    "risk_pct",
+                ),
+                0.0,
+            )
+        ),
+        "horizon": str(
+            _first_present(
+                nested,
+                ("horizon", "time_horizon", "holding_period"),
+                _first_present(
+                    prediction,
+                    ("horizon", "time_horizon", "holding_period"),
+                    "UNSPECIFIED",
+                ),
+            )
+        ),
+    }
+
+
+def _extract_allocation(
+    portfolio: MappingType,
+    committee: MappingType,
+    screener: MappingType,
+) -> Dict[str, Any]:
+    nested = _merge_mappings(
+        _first_mapping(
+            portfolio,
+            ("allocation", "position", "sizing"),
+        ),
+        _first_mapping(
+            committee,
+            ("allocation", "position", "sizing"),
+        ),
+    )
+
+    return {
+        "position_size_pct": _safe_float(
+            _first_present(
+                nested,
+                (
+                    "position_size_pct",
+                    "weight_pct",
+                    "allocation_pct",
+                    "recommended_weight",
+                ),
+                _first_present(
+                    portfolio,
+                    (
+                        "position_size_pct",
+                        "weight_pct",
+                        "allocation_pct",
+                        "recommended_weight",
+                    ),
+                    _first_present(
+                        screener,
+                        (
+                            "position_size_pct",
+                            "position_size",
+                            "allocation_pct",
+                        ),
+                        0.0,
+                    ),
+                ),
+            )
+        ),
+        "maximum_capital": _safe_float(
+            _first_present(
+                nested,
+                (
+                    "maximum_capital",
+                    "allocated_capital",
+                    "capital",
+                    "amount",
+                ),
+                _first_present(
+                    portfolio,
+                    (
+                        "maximum_capital",
+                        "allocated_capital",
+                        "capital",
+                        "amount",
+                    ),
+                    0.0,
+                ),
+            )
+        ),
+        "recommended_units": _safe_int(
+            _first_present(
+                nested,
+                (
+                    "recommended_units",
+                    "units",
+                    "shares",
+                    "quantity",
+                ),
+                _first_present(
+                    portfolio,
+                    (
+                        "recommended_units",
+                        "units",
+                        "shares",
+                        "quantity",
+                    ),
+                    0,
+                ),
+            )
+        ),
+        "existing_exposure_pct": _safe_float(
+            _first_present(
+                nested,
+                (
+                    "existing_exposure_pct",
+                    "current_exposure_pct",
+                ),
+                _first_present(
+                    portfolio,
+                    (
+                        "existing_exposure_pct",
+                        "current_exposure_pct",
+                    ),
+                    0.0,
+                ),
+            )
+        ),
+        "post_trade_exposure_pct": _safe_float(
+            _first_present(
+                nested,
+                (
+                    "post_trade_exposure_pct",
+                    "new_exposure_pct",
+                ),
+                _first_present(
+                    portfolio,
+                    (
+                        "post_trade_exposure_pct",
+                        "new_exposure_pct",
+                    ),
+                    0.0,
+                ),
+            )
+        ),
+    }
+
+
+def _extract_committee_agent_scores(
+    committee: MappingType,
+) -> Dict[str, float]:
+    """
+    Extract normalized specialist scores from nested committee agents.
+
+    Supports agent collections exposed under common keys such as:
+    agents, members, committee_members, votes and agent_results.
+    """
+    agent_candidates = _first_list(
+        committee,
+        (
+            "agents",
+            "members",
+            "committee_members",
+            "votes",
+            "agent_results",
+            "analysts",
+        ),
+    )
+
+    # Some producers may wrap the list inside another mapping.
+    if not agent_candidates:
+        for container_key in (
+            "committee",
+            "investment_committee",
+            "committee_result",
+            "result",
+            "data",
+        ):
+            container = committee.get(container_key)
+
+            if isinstance(container, Mapping):
+                agent_candidates = _first_list(
+                    container,
+                    (
+                        "agents",
+                        "members",
+                        "committee_members",
+                        "votes",
+                        "agent_results",
+                        "analysts",
+                    ),
+                )
+
+                if agent_candidates:
+                    break
+
+    extracted: Dict[str, float] = {}
+
+    for item in agent_candidates:
+        if not isinstance(item, Mapping):
+            continue
+
+        name = str(item.get("name") or "").strip().upper()
+        role = str(item.get("role") or "").strip().upper()
+        identity = f"{name} {role}"
+
+        score = _normalize_percentage(
+            _first_present(
+                item,
+                (
+                    "score",
+                    "agent_score",
+                    "confidence_score",
+                    "strength_score",
+                    "confidence",
+                ),
+                0.0,
+            ),
+            0.0,
+        )
+
+        if (
+            "TECHNICAL" in identity
+            and "technical" not in extracted
+        ):
+            extracted["technical"] = score
+
+        elif (
+            any(
+                token in identity
+                for token in (
+                    "INSTITUTIONAL",
+                    "FLOW ANALYST",
+                    "SMART MONEY",
+                )
+            )
+            and "institutional" not in extracted
+        ):
+            extracted["institutional"] = score
+
+        elif (
+            "VOLUME" in identity
+            and "volume" not in extracted
+        ):
+            extracted["volume"] = score
+
+        elif (
+            "RISK" in identity
+            and "risk" not in extracted
+        ):
+            extracted["risk"] = score
+
+        elif (
+            any(
+                token in identity
+                for token in (
+                    "PORTFOLIO",
+                    "ALLOCATION",
+                )
+            )
+            and "portfolio_fit" not in extracted
+        ):
+            extracted["portfolio_fit"] = score
+
+        elif (
+            any(
+                token in identity
+                for token in (
+                    "LEARNING",
+                    "ADAPTIVE",
+                )
+            )
+            and "learning" not in extracted
+        ):
+            extracted["learning"] = score
+
+        elif (
+            any(
+                token in identity
+                for token in (
+                    "QUANT",
+                    "PREDICTIVE",
+                    "PREDICTION",
+                )
+            )
+            and "prediction" not in extracted
+        ):
+            extracted["prediction"] = score
+
+    return extracted
+
+
+def _extract_scores(
+    prediction: MappingType,
+    committee: MappingType,
+    risk: MappingType,
+    screener: MappingType,
+    learning: MappingType,
+    market_regime: MappingType,
+) -> Dict[str, float]:
+    prediction_scores = _first_mapping(
+        prediction,
+        ("scores", "score_breakdown", "components"),
+    )
+    committee_scores = _first_mapping(
+        committee,
+        ("scores", "score_breakdown", "components"),
+    )
+    screener_scores = _first_mapping(
+        screener,
+        ("scores", "score_breakdown", "components"),
+    )
+
+    committee_agent_scores = _extract_committee_agent_scores(
+        committee,
+    )
+
+    return {
+        "technical": _source_score(
+            _merge_mappings(
+                screener_scores,
+                committee_scores,
+                screener,
+                committee,
+                committee_agent_scores,
+            ),
+            (
+                "technical",
+                "technical_score",
+                "technical_strength",
+                "ta_score",
+            ),
+        ),
+        "volume": _source_score(
+            _merge_mappings(
+                screener_scores,
+                committee_scores,
+                screener,
+                committee,
+                committee_agent_scores,
+            ),
+            (
+                "volume",
+                "volume_score",
+                "volume_strength",
+                "volume_quality",
+            ),
+        ),
+        "institutional": _source_score(
+            _merge_mappings(
+                committee_scores,
+                committee,
+                committee_agent_scores,
+            ),
+            (
+                "institutional",
+                "institutional_score",
+                "institutional_strength_index",
+                "flow_score",
+            ),
+        ),
+        "prediction": _source_score(
+            _merge_mappings(
+                prediction_scores,
+                prediction,
+            ),
+            (
+                "prediction_probability_pct",
+                "conviction_score",
+                "regime_adjusted_conviction_score",
+                "raw_conviction_score",
+                "confidence",
+                "prediction",
+                "prediction_score",
+                "forecast_score",
+                "model_score",
+                "probability_success_pct",
+                "score",
+            ),
+        ),
+        "committee": _source_score(
+            _merge_mappings(
+                committee_scores,
+                committee,
+            ),
+            (
+                "committee",
+                "committee_score",
+                "decision_score",
+                "score",
+            ),
+        ),
+        "consensus": _source_score(
+            committee,
+            (
+                "consensus_score",
+                "committee_consensus",
+                "agreement_pct",
+                "agreement",
+            ),
+        ),
+        "risk": _source_score(
+            _merge_mappings(
+                risk,
+                committee_agent_scores,
+            ),
+            (
+                "risk",
+                "risk_score",
+                "safety_score",
+                "score",
+            ),
+        ),
+        "learning": _source_score(
+            _merge_mappings(
+                learning,
+                committee_agent_scores,
+            ),
+            (
+                "learning",
+                "learning_score",
+                "adaptive_score",
+                "accuracy",
+                "accuracy_pct",
+                "confidence_score",
+            ),
+        ),
+        "market_regime": _source_score(
+            market_regime,
+            (
+                "regime_score",
+                "market_regime_score",
+                "score",
+            ),
+        ),
+        "portfolio_fit": _source_score(
+            _merge_mappings(
+                committee,
+                committee_agent_scores,
+            ),
+            (
+                "portfolio_fit_score",
+                "portfolio_score",
+                "fit_score",
+            ),
+        ),
+    }
+
+
+def _build_supporting_engines(
+    *,
+    prediction: MappingType,
+    committee: MappingType,
+    risk: MappingType,
+    portfolio: MappingType,
+    screener: MappingType,
+    learning: MappingType,
+    market_regime: MappingType,
+    breadth: MappingType,
+) -> Dict[str, Any]:
+    return {
+        "prediction_center": dict(prediction),
+        "investment_committee": dict(committee),
+        "risk_engine": dict(risk),
+        "portfolio_optimizer": dict(portfolio),
+        "screener_engine": dict(screener),
+        "learning_engine": dict(learning),
+        "market_regime_engine": dict(market_regime),
+        "market_breadth": dict(breadth),
+    }
+
+
+def adapt_prediction_center(payload: Any) -> List[Dict[str, Any]]:
+    return _as_records(
+        payload,
+        preferred_keys=(
+            "predictions",
+            "profiles",
+            "opportunities",
+        ),
+    )
+
+
+def adapt_investment_committee(payload: Any) -> List[Dict[str, Any]]:
+    return _as_records(
+        payload,
+        preferred_keys=(
+            "decisions",
+            "committee_decisions",
+            "recommendations",
+        ),
+    )
+
+
+def adapt_risk_engine(payload: Any) -> List[Dict[str, Any]]:
+    return _as_records(
+        payload,
+        preferred_keys=(
+            "risk_metrics",
+            "stocks",
+            "rows",
+        ),
+    )
+
+
+def adapt_portfolio_optimizer(payload: Any) -> List[Dict[str, Any]]:
+    return _as_records(
+        payload,
+        preferred_keys=(
+            "portfolio",
+            "positions",
+            "allocations",
+            "holdings",
+        ),
+    )
+
+
+def adapt_screener(payload: Any) -> List[Dict[str, Any]]:
+    return _as_records(
+        payload,
+        preferred_keys=(
+            "screener",
+            "results",
+            "stocks",
+            "opportunities",
+        ),
+    )
+
+
+def adapt_market_regime(payload: Any) -> Dict[str, Any]:
+    if isinstance(payload, Mapping):
+        source = dict(payload)
+
+        nested = _first_mapping(
+            source,
+            (
+                "market_regime",
+                "regime",
+                "result",
+                "data",
+            ),
+        )
+
+        if nested:
+            return _merge_mappings(source, nested)
+
+        return source
+
+    return {}
+
+
+def adapt_learning(payload: Any) -> Dict[str, Any]:
+    if isinstance(payload, Mapping):
+        source = dict(payload)
+
+        nested = _first_mapping(
+            source,
+            (
+                "learning",
+                "summary",
+                "metrics",
+                "data",
+            ),
+        )
+
+        if nested:
+            return _merge_mappings(source, nested)
+
+        return source
+
+    return {}
+
+
+def adapt_breadth(payload: Any) -> Dict[str, Any]:
+    if isinstance(payload, Mapping):
+        return dict(payload)
+
+    return {}
+
+
+def build_source_bundle(
+    *,
+    prediction_center: Any = None,
+    investment_committee: Any = None,
+    risk_engine: Any = None,
+    portfolio_optimizer: Any = None,
+    screener: Any = None,
+    market_regime: Any = None,
+    learning: Any = None,
+    breadth: Any = None,
+    metadata: Optional[MappingType] = None,
+) -> AICIOSourceBundle:
+    return AICIOSourceBundle(
+        predictions=adapt_prediction_center(
+            prediction_center
+        ),
+        committee=adapt_investment_committee(
+            investment_committee
+        ),
+        risk=adapt_risk_engine(
+            risk_engine
+        ),
+        portfolio=adapt_portfolio_optimizer(
+            portfolio_optimizer
+        ),
+        screener=adapt_screener(
+            screener
+        ),
+        market_regime=adapt_market_regime(
+            market_regime
+        ),
+        learning=adapt_learning(
+            learning
+        ),
+        breadth=adapt_breadth(
+            breadth
+        ),
+        metadata=dict(metadata or {}),
+    )
+
+
+def _collect_symbols(
+    bundle: AICIOSourceBundle,
+) -> List[str]:
+    """
+    Preserve committee/prediction/screener ordering while avoiding duplicates.
+    """
+
+    ordered: List[str] = []
+
+    for records in (
+        bundle.committee,
+        bundle.predictions,
+        bundle.screener,
+        bundle.risk,
+        bundle.portfolio,
+    ):
+        for record in records:
+            symbol = _normalize_symbol(
+                _first_present(
+                    record,
+                    (
+                        "symbol",
+                        "ticker",
+                        "code",
+                        "security",
+                        "instrument",
+                    ),
+                )
+            )
+
+            if symbol and symbol not in ordered:
+                ordered.append(symbol)
+
+    return ordered
+
+
+def _decision_score(
+    committee: MappingType,
+    prediction: MappingType,
+    screener: MappingType,
+) -> float:
+    for source, keys in (
+        (
+            committee,
+            (
+                "decision_score",
+                "committee_score",
+                "final_score",
+                "score",
+            ),
+        ),
+        (
+            prediction,
+            (
+                "decision_score",
+                "prediction_score",
+                "forecast_score",
+                "score",
+            ),
+        ),
+        (
+            screener,
+            (
+                "decision_score",
+                "rank_score",
+                "score",
+            ),
+        ),
+    ):
+        value = _first_present(source, keys)
+
+        if value not in (None, ""):
+            return _normalize_percentage(value)
+
+    return 50.0
+
+
+def _decision_confidence(
+    committee: MappingType,
+    prediction: MappingType,
+    screener: MappingType,
+) -> float:
+    for source, keys in (
+        (
+            committee,
+            (
+                "confidence",
+                "confidence_pct",
+                "decision_confidence",
+                "committee_confidence",
+            ),
+        ),
+        (
+            prediction,
+            (
+                "confidence",
+                "confidence_pct",
+                "prediction_confidence",
+                "model_confidence",
+            ),
+        ),
+        (
+            screener,
+            (
+                "confidence",
+                "confidence_pct",
+            ),
+        ),
+    ):
+        value = _first_present(source, keys)
+
+        if value not in (None, ""):
+            return _normalize_percentage(value)
+
+    return 0.0
+
+
+
+def _policy_first_score(
+    sources: Sequence[MappingType],
+    keys: Sequence[str],
+) -> Optional[float]:
+    """
+    Find the first usable numeric score from normalized engine records.
+    """
+
+    for source in sources:
+        if not isinstance(source, Mapping):
+            continue
+
+        value = _first_present(
+            source,
+            keys,
+            None,
+        )
+
+        if value in (None, ""):
+            continue
+
+        return _normalize_percentage(value)
+
+    return None
+
+
+def _policy_mapping_score(
+    source: MappingType,
+    keys: Sequence[str],
+) -> Optional[float]:
+    """
+    Find a score inside the existing AI CIO score breakdown.
+    """
+
+    for key in keys:
+        if key not in source:
+            continue
+
+        value = source.get(key)
+
+        if isinstance(value, Mapping):
+            value = _first_present(
+                value,
+                (
+                    "score",
+                    "value",
+                    "normalized_score",
+                    "confidence",
+                ),
+                None,
+            )
+
+        if value in (None, ""):
+            continue
+
+        return _normalize_percentage(value)
+
+    return None
+
+
+def _build_ai_cio_policy_input(
+    *,
+    symbol: str,
+    prediction: MappingType,
+    committee: MappingType,
+    risk: MappingType,
+    portfolio: MappingType,
+    screener: MappingType,
+    learning: MappingType,
+    regime: MappingType,
+    breadth: MappingType,
+    scores: MappingType,
+    allocation: MappingType,
+    risk_status: str,
+    market_regime: str,
+    metadata: MappingType,
+) -> PolicyInput:
+    """
+    Adapt existing normalized AI CIO records into the Phase 12.4 policy input.
+
+    This adapter is intentionally permissive because specialist engines may
+    expose equivalent values under different field names.
+    """
+
+    prediction_score = (
+        _policy_mapping_score(
+            scores,
+            (
+                "prediction",
+                "prediction_score",
+                "forecast",
+                "forecast_score",
+                "model_score",
+            ),
+        )
+        or _policy_first_score(
+            (prediction,),
+            (
+                "prediction_score",
+                "forecast_score",
+                "model_score",
+                "opportunity_score",
+                "score",
+                "confidence",
+            ),
+        )
+    )
+
+    committee_score = (
+        _policy_mapping_score(
+            scores,
+            (
+                "committee",
+                "committee_score",
+                "consensus",
+                "consensus_score",
+            ),
+        )
+        or _policy_first_score(
+            (committee,),
+            (
+                "committee_score",
+                "consensus_score",
+                "committee_consensus",
+                "agreement_pct",
+                "score",
+                "confidence",
+            ),
+        )
+    )
+
+    risk_score = (
+        _policy_mapping_score(
+            scores,
+            (
+                "risk",
+                "risk_score",
+                "safety",
+                "safety_score",
+            ),
+        )
+        or _policy_first_score(
+            (risk, committee),
+            (
+                "risk_score",
+                "safety_score",
+                "risk_confidence",
+                "score",
+            ),
+        )
+    )
+
+    portfolio_score = (
+        _policy_mapping_score(
+            scores,
+            (
+                "portfolio",
+                "portfolio_score",
+                "allocation",
+                "allocation_score",
+            ),
+        )
+        or _policy_first_score(
+            (portfolio,),
+            (
+                "portfolio_score",
+                "allocation_score",
+                "fit_score",
+                "suitability_score",
+                "score",
+            ),
+        )
+    )
+
+    regime_score = (
+        _policy_mapping_score(
+            scores,
+            (
+                "market_regime",
+                "regime",
+                "regime_score",
+            ),
+        )
+        or _policy_first_score(
+            (regime,),
+            (
+                "market_regime_score",
+                "regime_score",
+                "confidence",
+                "score",
+            ),
+        )
+    )
+
+    institutional_score = (
+        _policy_mapping_score(
+            scores,
+            (
+                "institutional",
+                "institutional_flow",
+                "volume",
+                "volume_score",
+                "liquidity",
+            ),
+        )
+        or _policy_first_score(
+            (
+                committee,
+                screener,
+                breadth,
+                learning,
+            ),
+            (
+                "institutional_score",
+                "institutional_flow_score",
+                "volume_score",
+                "volume_intelligence_score",
+                "accumulation_score",
+                "liquidity_score",
+            ),
+        )
+    )
+
+    liquidity_score = _policy_first_score(
+        (
+            committee,
+            screener,
+            breadth,
+            prediction,
+        ),
+        (
+            "liquidity_score",
+            "volume_score",
+            "volume_intelligence_score",
+            "tradability_score",
+            "marketability_score",
+        ),
+    )
+
+    if liquidity_score is None:
+        liquidity_score = institutional_score
+
+    current_exposure = _policy_first_score(
+        (allocation, portfolio),
+        (
+            "current_exposure_pct",
+            "existing_exposure_pct",
+            "portfolio_exposure_pct",
+            "sector_exposure_pct",
+            "current_weight_pct",
+        ),
+    )
+
+    recommended_allocation = _policy_first_score(
+        (allocation, portfolio, committee),
+        (
+            "recommended_allocation_pct",
+            "allocation_pct",
+            "target_weight_pct",
+            "recommended_weight_pct",
+            "position_size_pct",
+        ),
+    )
+
+    data_age = _first_present(
+        metadata,
+        (
+            "data_age_seconds",
+            "market_data_age_seconds",
+            "quote_age_seconds",
+        ),
+        None,
+    )
+
+    data_quality = _first_present(
+        metadata,
+        (
+            "data_quality",
+            "market_data_quality",
+            "quality_status",
+        ),
+        "UNKNOWN",
+    )
+
+    return PolicyInput(
+        symbol=symbol,
+        prediction_score=prediction_score,
+        committee_score=committee_score,
+        risk_score=risk_score,
+        portfolio_score=portfolio_score,
+        market_regime_score=regime_score,
+        institutional_score=institutional_score,
+        risk_status=risk_status,
+        market_regime=market_regime,
+        liquidity_score=liquidity_score,
+        current_exposure_pct=current_exposure,
+        recommended_allocation_pct=recommended_allocation,
+        data_age_seconds=data_age,
+        data_quality=str(data_quality or "UNKNOWN"),
+        metadata={
+            "integration_phase": "12.4B-shadow",
+        },
+    )
+
+
+def assemble_ai_cio_decision(
+    *,
+    symbol: str,
+    prediction: Optional[MappingType] = None,
+    committee: Optional[MappingType] = None,
+    risk: Optional[MappingType] = None,
+    portfolio: Optional[MappingType] = None,
+    screener: Optional[MappingType] = None,
+    learning: Optional[MappingType] = None,
+    market_regime: Optional[MappingType] = None,
+    breadth: Optional[MappingType] = None,
+    metadata: Optional[MappingType] = None,
+) -> AICIODecisionAssembly:
+    """
+    Assemble and validate one AI CIO decision from specialist-engine records.
+    """
+
+    normalized_symbol = _normalize_symbol(symbol)
+
+    if not normalized_symbol:
+        raise AICIOOrchestrationError(
+            "Cannot assemble AI CIO decision without a symbol"
+        )
+
+    prediction_record = dict(prediction or {})
+    committee_record = dict(committee or {})
+    risk_record = dict(risk or {})
+    portfolio_record = dict(portfolio or {})
+    screener_record = dict(screener or {})
+    learning_record = dict(learning or {})
+    regime_record = dict(market_regime or {})
+    breadth_record = dict(breadth or {})
+    source_metadata = dict(metadata or {})
+
+    warnings: List[str] = []
+
+    if not committee_record:
+        warnings.append(
+            "Investment committee record unavailable"
+        )
+
+    if not prediction_record:
+        warnings.append(
+            "Prediction-center record unavailable"
+        )
+
+    if not risk_record:
+        warnings.append(
+            "Symbol risk record unavailable"
+        )
+
+    decision_score = _decision_score(
+        committee_record,
+        prediction_record,
+        screener_record,
+    )
+
+    confidence = _decision_confidence(
+        committee_record,
+        prediction_record,
+        screener_record,
+    )
+
+    decision_value = _normalize_decision(
+        _first_present(
+            committee_record,
+            (
+                "decision",
+                "final_decision",
+                "recommendation",
+                "signal",
+                "action",
+            ),
+            _first_present(
+                prediction_record,
+                (
+                    "decision",
+                    "recommendation",
+                    "signal",
+                    "action",
+                ),
+                _first_present(
+                    screener_record,
+                    (
+                        "decision",
+                        "signal",
+                        "recommendation",
+                    ),
+                ),
+            ),
+        ),
+        decision_score,
+    )
+
+    risk_veto = bool(
+        _first_present(
+            risk_record,
+            (
+                "risk_veto",
+                "veto",
+                "blocked",
+                "is_blocked",
+            ),
+            _first_present(
+                committee_record,
+                (
+                    "risk_veto",
+                    "veto",
+                    "blocked",
+                ),
+                False,
+            ),
+        )
+    )
+
+    risk_status = _normalize_risk_status(
+        _merge_mappings(
+            committee_record,
+            risk_record,
+            {"risk_veto": risk_veto},
+        )
+    )
+
+    committee_consensus = _normalize_percentage(
+        _first_present(
+            committee_record,
+            (
+                "committee_consensus",
+                "consensus_score",
+                "consensus",
+                "agreement_pct",
+                "agreement",
+            ),
+            0.0,
+        )
+    )
+
+    committee_agreement = _normalize_percentage(
+        _first_present(
+            committee_record,
+            (
+                "committee_agreement",
+                "agreement_pct",
+                "agreement",
+                "agreeing_pct",
+            ),
+            committee_consensus,
+        )
+    )
+
+    committee_disagreement = _normalize_percentage(
+        _first_present(
+            committee_record,
+            (
+                "committee_disagreement",
+                "disagreement_pct",
+                "disagreement",
+                "conflict_pct",
+            ),
+            max(0.0, 100.0 - committee_agreement)
+            if committee_agreement > 0
+            else 0.0,
+        )
+    )
+
+    scores = _extract_scores(
+        prediction_record,
+        committee_record,
+        risk_record,
+        screener_record,
+        learning_record,
+        regime_record,
+    )
+
+    price_plan = _extract_price_plan(
+        prediction_record,
+        committee_record,
+        screener_record,
+    )
+
+    allocation = _extract_allocation(
+        portfolio_record,
+        committee_record,
+        screener_record,
+    )
+
+    normalized_market_regime = _normalize_market_regime(
+        regime_record
+    )
+
+    policy_result = None
+
+    try:
+        policy_input = _build_ai_cio_policy_input(
+            symbol=normalized_symbol,
+            prediction=prediction_record,
+            committee=committee_record,
+            risk=risk_record,
+            portfolio=portfolio_record,
+            screener=screener_record,
+            learning=learning_record,
+            regime=regime_record,
+            breadth=breadth_record,
+            scores=scores,
+            allocation=allocation,
+            risk_status=risk_status,
+            market_regime=normalized_market_regime,
+            metadata=source_metadata,
+        )
+
+        policy_result = evaluate_ai_cio_policy(
+            policy_input
+        )
+
+        if policy_result.decision != decision_value:
+            warnings.append(
+                "AI CIO policy shadow decision differs from "
+                f"current orchestration: "
+                f"{decision_value} -> {policy_result.decision}"
+            )
+
+        for policy_warning in policy_result.warnings:
+            warning_text = (
+                f"AI CIO policy shadow: {policy_warning}"
+            )
+
+            if warning_text not in warnings:
+                warnings.append(warning_text)
+
+    except Exception as exc:
+        warnings.append(
+            f"AI CIO policy shadow evaluation failed: {exc}"
+        )
+
+
+    why_now = _extract_reasons(
+        committee_record,
+        prediction_record,
+        screener_record,
+        keys=(
+            "why_now",
+            "reasons",
+            "reason",
+            "supporting_reasons",
+            "bullish_reasons",
+            "decision_reasons",
+            "explanation",
+        ),
+    )
+
+    key_risks = _extract_reasons(
+        risk_record,
+        committee_record,
+        prediction_record,
+        keys=(
+            "key_risks",
+            "risk_factors",
+            "risks",
+            "warnings",
+            "risk_reasons",
+        ),
+    )
+
+    invalidation_conditions = _extract_reasons(
+        committee_record,
+        prediction_record,
+        risk_record,
+        keys=(
+            "invalidation_conditions",
+            "invalidation",
+            "exit_conditions",
+            "failure_conditions",
+            "stop_conditions",
+        ),
+    )
+
+    ranking_reasons = _extract_reasons(
+        committee_record,
+        prediction_record,
+        screener_record,
+        keys=(
+            "ranking_reasons",
+            "rank_reasons",
+            "selection_reasons",
+            "opportunity_reasons",
+        ),
+    )
+
+    supporting_engines = _build_supporting_engines(
+        prediction=prediction_record,
+        committee=committee_record,
+        risk=risk_record,
+        portfolio=portfolio_record,
+        screener=screener_record,
+        learning=learning_record,
+        market_regime=regime_record,
+        breadth=breadth_record,
+    )
+
+    contract_payload = {
+        "symbol": normalized_symbol,
+        "decision": decision_value,
+        "decision_score": decision_score,
+        "confidence": confidence,
+        "conviction": _normalize_conviction(
+            _first_present(
+                committee_record,
+                (
+                    "conviction",
+                    "conviction_level",
+                    "confidence_level",
+                    "rating",
+                ),
+                _first_present(
+                    prediction_record,
+                    (
+                        "conviction",
+                        "confidence_level",
+                        "rating",
+                    ),
+                ),
+            ),
+            confidence,
+        ),
+        "market_regime": normalized_market_regime,
+        "risk_status": risk_status,
+        "risk_veto": risk_veto,
+        "committee_consensus": committee_consensus,
+        "committee_agreement": committee_agreement,
+        "committee_disagreement": committee_disagreement,
+        "scores": scores,
+        "price_plan": price_plan,
+        "allocation": allocation,
+        "why_now": why_now,
+        "key_risks": key_risks,
+        "invalidation_conditions": invalidation_conditions,
+        "ranking_reasons": ranking_reasons,
+        "supporting_engines": supporting_engines,
+        "source_metadata": {
+            **source_metadata,
+            "phase": "12.2-part-1",
+            "orchestrator": "services.ai_cio",
+            "policy_shadow": (
+                policy_result.to_dict()
+                if policy_result is not None
+                else None
+            ),
+            "policy_shadow_enabled": True,
+            "policy_shadow_phase": "12.4B",
+            "available_sources": {
+                "prediction_center": bool(prediction_record),
+                "investment_committee": bool(committee_record),
+                "risk_engine": bool(risk_record),
+                "portfolio_optimizer": bool(portfolio_record),
+                "screener_engine": bool(screener_record),
+                "learning_engine": bool(learning_record),
+                "market_regime_engine": bool(regime_record),
+                "market_breadth": bool(breadth_record),
+            },
+        },
+    }
+
+    try:
+        decision = build_ai_cio_decision(
+            contract_payload
+        )
+    except DecisionContractError as exc:
+        raise AICIOOrchestrationError(
+            f"{normalized_symbol}: AI CIO contract validation failed: {exc}"
+        ) from exc
+
+    return AICIODecisionAssembly(
+        symbol=normalized_symbol,
+        decision=decision,
+        warnings=warnings,
+    )
+
+
+def build_ai_cio_from_bundle(
+    bundle: AICIOSourceBundle,
+    *,
+    strict: bool = False,
+) -> AICIOBuildResult:
+    """
+    Assemble one validated decision per available symbol.
+
+    strict=False:
+        Invalid symbols are recorded in `errors`; valid symbols continue.
+
+    strict=True:
+        First assembly error is raised immediately.
+    """
+
+    prediction_index = _index_records(
+        bundle.predictions
+    )
+    committee_index = _index_records(
+        bundle.committee
+    )
+    risk_index = _index_records(
+        bundle.risk
+    )
+    portfolio_index = _index_records(
+        bundle.portfolio
+    )
+    screener_index = _index_records(
+        bundle.screener
+    )
+
+    symbols = _collect_symbols(bundle)
+
+    assemblies: List[AICIODecisionAssembly] = []
+    errors: List[Dict[str, Any]] = []
+
+    for symbol in symbols:
+        try:
+            assembly = assemble_ai_cio_decision(
+                symbol=symbol,
+                prediction=prediction_index.get(symbol),
+                committee=committee_index.get(symbol),
+                risk=risk_index.get(symbol),
+                portfolio=portfolio_index.get(symbol),
+                screener=screener_index.get(symbol),
+                learning=bundle.learning,
+                market_regime=bundle.market_regime,
+                breadth=bundle.breadth,
+                metadata=bundle.metadata,
+            )
+
+            assemblies.append(assembly)
+
+        except Exception as exc:
+            error = {
+                "symbol": symbol,
+                "error_type": type(exc).__name__,
+                "message": str(exc),
+            }
+
+            errors.append(error)
+
+            if strict:
+                raise
+
+    return AICIOBuildResult(
+        decisions=[
+            assembly.decision
+            for assembly in assemblies
+        ],
+        assemblies=assemblies,
+        errors=errors,
+        source_counts={
+            "predictions": len(bundle.predictions),
+            "committee": len(bundle.committee),
+            "risk": len(bundle.risk),
+            "portfolio": len(bundle.portfolio),
+            "screener": len(bundle.screener),
+            "symbols": len(symbols),
+            "decisions": len(assemblies),
+            "errors": len(errors),
+        },
+        metadata={
+            **bundle.metadata,
+            "phase": "12.2-part-1",
+            "ranking_applied": False,
+            "summary_generated": False,
+            "cache_applied": False,
+            "repository_writes": False,
+        },
+    )
+
+
+class AICIOOrchestrator:
+    """
+    Dependency-injected Phase 12.2 core orchestrator.
+
+    Providers may be actual engine functions or test doubles. This avoids
+    importing or invoking production engines during unit tests.
+    """
+
+    def __init__(
+        self,
+        *,
+        prediction_provider: Optional[Provider] = None,
+        committee_provider: Optional[Provider] = None,
+        risk_provider: Optional[Provider] = None,
+        portfolio_provider: Optional[Provider] = None,
+        screener_provider: Optional[Provider] = None,
+        market_regime_provider: Optional[Provider] = None,
+        learning_provider: Optional[Provider] = None,
+        breadth_provider: Optional[Provider] = None,
+        metadata: Optional[MappingType] = None,
+    ) -> None:
+        self._prediction_provider = prediction_provider
+        self._committee_provider = committee_provider
+        self._risk_provider = risk_provider
+        self._portfolio_provider = portfolio_provider
+        self._screener_provider = screener_provider
+        self._market_regime_provider = market_regime_provider
+        self._learning_provider = learning_provider
+        self._breadth_provider = breadth_provider
+        self._metadata = dict(metadata or {})
+
+    @staticmethod
+    def _call_provider(
+        provider: Optional[Provider],
+        source_name: str,
+    ) -> Any:
+        if provider is None:
+            return None
+
+        try:
+            return provider()
+        except Exception as exc:
+            raise AICIOOrchestrationError(
+                f"{source_name} provider failed: {exc}"
+            ) from exc
+
+    def collect_sources(self) -> AICIOSourceBundle:
+        return build_source_bundle(
+            prediction_center=self._call_provider(
+                self._prediction_provider,
+                "prediction_center",
+            ),
+            investment_committee=self._call_provider(
+                self._committee_provider,
+                "investment_committee",
+            ),
+            risk_engine=self._call_provider(
+                self._risk_provider,
+                "risk_engine",
+            ),
+            portfolio_optimizer=self._call_provider(
+                self._portfolio_provider,
+                "portfolio_optimizer",
+            ),
+            screener=self._call_provider(
+                self._screener_provider,
+                "screener_engine",
+            ),
+            market_regime=self._call_provider(
+                self._market_regime_provider,
+                "market_regime_engine",
+            ),
+            learning=self._call_provider(
+                self._learning_provider,
+                "learning_engine",
+            ),
+            breadth=self._call_provider(
+                self._breadth_provider,
+                "market_breadth",
+            ),
+            metadata=self._metadata,
+        )
+
+    def build(
+        self,
+        *,
+        strict: bool = False,
+    ) -> AICIOBuildResult:
+        return build_ai_cio_from_bundle(
+            self.collect_sources(),
+            strict=strict,
+        )
+
+
+def build_ai_cio_decisions(
+    *,
+    prediction_center: Any = None,
+    investment_committee: Any = None,
+    risk_engine: Any = None,
+    portfolio_optimizer: Any = None,
+    screener: Any = None,
+    market_regime: Any = None,
+    learning: Any = None,
+    breadth: Any = None,
+    metadata: Optional[MappingType] = None,
+    strict: bool = False,
+) -> AICIOBuildResult:
+    """
+    Functional entry point for Phase 12.2 Part 1.
+
+    This function accepts already-produced engine outputs. Automatic loading
+    from production engine functions is added during the integration part.
+    """
+
+    bundle = build_source_bundle(
+        prediction_center=prediction_center,
+        investment_committee=investment_committee,
+        risk_engine=risk_engine,
+        portfolio_optimizer=portfolio_optimizer,
+        screener=screener,
+        market_regime=market_regime,
+        learning=learning,
+        breadth=breadth,
+        metadata=metadata,
+    )
+
+    return build_ai_cio_from_bundle(
+        bundle,
+        strict=strict,
+    )
+
+
+__all__ = [
+    "AICIOBuildResult",
+    "AICIODecisionAssembly",
+    "AICIOOrchestrationError",
+    "AICIOOrchestrator",
+    "AICIOSourceBundle",
+    "adapt_breadth",
+    "adapt_investment_committee",
+    "adapt_learning",
+    "adapt_market_regime",
+    "adapt_portfolio_optimizer",
+    "adapt_prediction_center",
+    "adapt_risk_engine",
+    "adapt_screener",
+    "assemble_ai_cio_decision",
+    "build_ai_cio_decisions",
+    "build_ai_cio_from_bundle",
+    "build_source_bundle",
+]
+
+# ============================================================================
+# PHASE 12.2 PART 2 — AI CIO EXECUTIVE RANKING, SUMMARY, CACHE AND VALIDATION
+# ============================================================================
+
+from dataclasses import asdict as _dataclass_asdict
+from datetime import datetime as _datetime
+from datetime import timezone as _timezone
+from threading import RLock as _RLock
+from time import monotonic as _monotonic
+from typing import Tuple as _Tuple
+
+
+@dataclass(frozen=True)
+class AICIORankingWeights:
+    """
+    Executive ranking weights.
+
+    The weights are normalized automatically, so callers may provide either
+    decimal proportions or whole-number percentages.
+    """
+
+    committee: float = 0.24
+    prediction: float = 0.18
+    technical: float = 0.14
+    institutional: float = 0.10
+    volume: float = 0.10
+    consensus: float = 0.08
+    market_regime: float = 0.06
+    learning: float = 0.05
+    portfolio_fit: float = 0.03
+    risk: float = 0.02
+
+    def normalized(self) -> Dict[str, float]:
+        raw = {
+            "committee": max(0.0, _safe_float(self.committee)),
+            "prediction": max(0.0, _safe_float(self.prediction)),
+            "technical": max(0.0, _safe_float(self.technical)),
+            "institutional": max(0.0, _safe_float(self.institutional)),
+            "volume": max(0.0, _safe_float(self.volume)),
+            "consensus": max(0.0, _safe_float(self.consensus)),
+            "market_regime": max(0.0, _safe_float(self.market_regime)),
+            "learning": max(0.0, _safe_float(self.learning)),
+            "portfolio_fit": max(0.0, _safe_float(self.portfolio_fit)),
+            "risk": max(0.0, _safe_float(self.risk)),
+        }
+
+        total = sum(raw.values())
+
+        if total <= 0:
+            raise AICIOOrchestrationError(
+                "AI CIO ranking weights must have a positive total"
+            )
+
+        return {
+            key: value / total
+            for key, value in raw.items()
+        }
+
+
+@dataclass(frozen=True)
+class AICIORankedDecision:
+    """
+    A validated AI CIO decision enriched with executive ranking information.
+    """
+
+    rank: int
+    symbol: str
+    executive_score: float
+    base_score: float
+    confidence_score: float
+    opportunity_score: float
+    risk_adjustment: float
+    regime_adjustment: float
+    conviction_adjustment: float
+    action_adjustment: float
+    data_quality_score: float
+    ranking_reasons: List[str]
+    decision: AICIODecision
+
+    def to_dict(self) -> Dict[str, Any]:
+        decision_payload = (
+            self.decision.to_dict()
+            if hasattr(self.decision, "to_dict")
+            else _dataclass_asdict(self.decision)
+        )
+
+        return {
+            "rank": self.rank,
+            "symbol": self.symbol,
+            "executive_score": self.executive_score,
+            "base_score": self.base_score,
+            "confidence_score": self.confidence_score,
+            "opportunity_score": self.opportunity_score,
+            "risk_adjustment": self.risk_adjustment,
+            "regime_adjustment": self.regime_adjustment,
+            "conviction_adjustment": self.conviction_adjustment,
+            "action_adjustment": self.action_adjustment,
+            "data_quality_score": self.data_quality_score,
+            "ranking_reasons": list(self.ranking_reasons),
+            "decision": decision_payload,
+        }
+
+
+@dataclass(frozen=True)
+class AICIOExecutiveSummary:
+    """
+    Portfolio-level executive briefing generated from ranked AI CIO decisions.
+    """
+
+    generated_at: str
+    market_regime: str
+    market_stance: str
+    deployment_posture: str
+    recommended_exposure_pct: float
+
+    total_decisions: int
+    actionable_decisions: int
+
+    strong_buy_count: int
+    buy_count: int
+    hold_count: int
+    reduce_count: int
+    sell_count: int
+    avoid_count: int
+
+    approved_count: int
+    caution_count: int
+    vetoed_count: int
+    insufficient_risk_data_count: int
+
+    average_confidence: float
+    average_executive_score: float
+    average_data_quality: float
+
+    top_symbol: Optional[str]
+    top_decision: Optional[str]
+    top_executive_score: float
+    top_confidence: float
+
+    capital_requested_pct: float
+    capital_recommended_pct: float
+    concentration_warning: bool
+
+    executive_message: str
+    risk_message: str
+    opportunities: List[str]
+    warnings: List[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _dataclass_asdict(self)
+
+
+@dataclass(frozen=True)
+class AICIOExecutiveResult:
+    """
+    Complete Phase 12.2 Part 2 output.
+    """
+
+    ranked_decisions: List[AICIORankedDecision]
+    summary: AICIOExecutiveSummary
+    validation: Dict[str, Any]
+    source_result: AICIOBuildResult
+    metadata: Dict[str, Any]
+
+    @property
+    def decisions(self) -> List[AICIODecision]:
+        return [
+            item.decision
+            for item in self.ranked_decisions
+        ]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ranked_decisions": [
+                item.to_dict()
+                for item in self.ranked_decisions
+            ],
+            "summary": self.summary.to_dict(),
+            "validation": dict(self.validation),
+            "metadata": dict(self.metadata),
+            "source_counts": dict(
+                getattr(
+                    self.source_result,
+                    "source_counts",
+                    {},
+                )
+            ),
+        }
+
+
+@dataclass
+class _AICIOCacheEntry:
+    value: Any
+    created_at: float
+    expires_at: float
+
+
+class AICIOCache:
+    """
+    Small thread-safe in-memory TTL cache.
+
+    This cache is process-local and read-only. It does not persist data and
+    does not write to the Signal Repository.
+    """
+
+    def __init__(
+        self,
+        *,
+        default_ttl_seconds: float = 60.0,
+        maximum_entries: int = 64,
+    ) -> None:
+        self.default_ttl_seconds = max(
+            0.0,
+            _safe_float(default_ttl_seconds, 60.0),
+        )
+        self.maximum_entries = max(
+            1,
+            _safe_int(maximum_entries, 64),
+        )
+
+        self._entries: Dict[str, _AICIOCacheEntry] = {}
+        self._lock = _RLock()
+
+    def get(self, key: str) -> Any:
+        cache_key = str(key or "").strip()
+
+        if not cache_key:
+            return None
+
+        now = _monotonic()
+
+        with self._lock:
+            entry = self._entries.get(cache_key)
+
+            if entry is None:
+                return None
+
+            if entry.expires_at <= now:
+                self._entries.pop(cache_key, None)
+                return None
+
+            return entry.value
+
+    def set(
+        self,
+        key: str,
+        value: Any,
+        *,
+        ttl_seconds: Optional[float] = None,
+    ) -> Any:
+        cache_key = str(key or "").strip()
+
+        if not cache_key:
+            raise ValueError("AI CIO cache key cannot be empty")
+
+        ttl = (
+            self.default_ttl_seconds
+            if ttl_seconds is None
+            else max(0.0, _safe_float(ttl_seconds))
+        )
+
+        now = _monotonic()
+
+        with self._lock:
+            self._purge_expired_locked(now)
+
+            if len(self._entries) >= self.maximum_entries:
+                oldest_key = min(
+                    self._entries,
+                    key=lambda item: self._entries[item].created_at,
+                )
+                self._entries.pop(oldest_key, None)
+
+            self._entries[cache_key] = _AICIOCacheEntry(
+                value=value,
+                created_at=now,
+                expires_at=now + ttl,
+            )
+
+        return value
+
+    def delete(self, key: str) -> bool:
+        cache_key = str(key or "").strip()
+
+        with self._lock:
+            return self._entries.pop(
+                cache_key,
+                None,
+            ) is not None
+
+    def clear(self) -> None:
+        with self._lock:
+            self._entries.clear()
+
+    def purge_expired(self) -> int:
+        now = _monotonic()
+
+        with self._lock:
+            return self._purge_expired_locked(now)
+
+    def _purge_expired_locked(
+        self,
+        now: float,
+    ) -> int:
+        expired = [
+            key
+            for key, entry in self._entries.items()
+            if entry.expires_at <= now
+        ]
+
+        for key in expired:
+            self._entries.pop(key, None)
+
+        return len(expired)
+
+    def stats(self) -> Dict[str, Any]:
+        now = _monotonic()
+
+        with self._lock:
+            self._purge_expired_locked(now)
+
+            return {
+                "entries": len(self._entries),
+                "maximum_entries": self.maximum_entries,
+                "default_ttl_seconds": self.default_ttl_seconds,
+                "keys": sorted(self._entries.keys()),
+            }
+
+
+_DEFAULT_AI_CIO_CACHE = AICIOCache(
+    default_ttl_seconds=60.0,
+    maximum_entries=64,
+)
+
+
+def _decision_payload(
+    decision: AICIODecision,
+) -> Dict[str, Any]:
+    if hasattr(decision, "to_dict"):
+        value = decision.to_dict()
+
+        if isinstance(value, Mapping):
+            return dict(value)
+
+    try:
+        value = _dataclass_asdict(decision)
+
+        if isinstance(value, Mapping):
+            return dict(value)
+    except (TypeError, ValueError):
+        pass
+
+    return {
+        key: getattr(decision, key)
+        for key in dir(decision)
+        if not key.startswith("_")
+        and not callable(getattr(decision, key))
+    }
+
+
+def _decision_value(
+    decision: AICIODecision,
+    key: str,
+    default: Any = None,
+) -> Any:
+    if hasattr(decision, key):
+        value = getattr(decision, key)
+
+        if value is not None:
+            return value
+
+    return _decision_payload(decision).get(
+        key,
+        default,
+    )
+
+
+def _score_mapping(
+    decision: AICIODecision,
+) -> Dict[str, Any]:
+    scores = _decision_value(
+        decision,
+        "scores",
+        {},
+    )
+
+    if isinstance(scores, Mapping):
+        return dict(scores)
+
+    try:
+        return _dataclass_asdict(scores)
+    except (TypeError, ValueError):
+        return {
+            key: getattr(scores, key)
+            for key in (
+                "technical",
+                "volume",
+                "institutional",
+                "prediction",
+                "committee",
+                "consensus",
+                "risk",
+                "learning",
+                "market_regime",
+                "portfolio_fit",
+            )
+            if hasattr(scores, key)
+        }
+
+
+def _allocation_mapping(
+    decision: AICIODecision,
+) -> Dict[str, Any]:
+    allocation = _decision_value(
+        decision,
+        "allocation",
+        {},
+    )
+
+    if isinstance(allocation, Mapping):
+        return dict(allocation)
+
+    try:
+        return _dataclass_asdict(allocation)
+    except (TypeError, ValueError):
+        return {
+            key: getattr(allocation, key)
+            for key in (
+                "position_size_pct",
+                "maximum_capital",
+                "recommended_units",
+                "existing_exposure_pct",
+                "post_trade_exposure_pct",
+            )
+            if hasattr(allocation, key)
+        }
+
+
+def _supporting_engines_mapping(
+    decision: AICIODecision,
+) -> Dict[str, Any]:
+    supporting = _decision_value(
+        decision,
+        "supporting_engines",
+        {},
+    )
+
+    return (
+        dict(supporting)
+        if isinstance(supporting, Mapping)
+        else {}
+    )
+
+
+def _normalized_score_value(
+    value: Any,
+    default: float = 0.0,
+) -> float:
+    return _normalize_percentage(
+        value,
+        default,
+    )
+
+
+
+def _regime_numeric_score(
+    regime: Any,
+) -> float:
+    """
+    Convert a normalized regime into an AI CIO compatibility score.
+
+    Volatility scores measure capital-deployment friendliness rather than
+    directional market performance.
+    """
+    normalized = _normalize_market_regime(regime)
+
+    scores = {
+        "STRONG_BULLISH": 95.0,
+        "BULLISH": 80.0,
+        "NEUTRAL": 55.0,
+        "CAUTIOUS": 40.0,
+        "BEARISH": 25.0,
+        "STRONG_BEARISH": 10.0,
+
+        "LOW_VOLATILITY": 65.0,
+        "NORMAL_VOLATILITY": 55.0,
+        "HIGH_VOLATILITY": 30.0,
+
+        "UNKNOWN": 45.0,
+    }
+
+    return scores.get(normalized, 45.0)
+
+def _conviction_adjustment(
+    conviction: Any,
+) -> float:
+    normalized = _upper(conviction)
+
+    adjustments = {
+        "VERY_HIGH": 5.0,
+        "HIGH": 3.0,
+        "MEDIUM": 0.0,
+        "LOW": -3.0,
+        "VERY_LOW": -6.0,
+    }
+
+    return adjustments.get(normalized, 0.0)
+
+
+def _decision_action_adjustment(
+    decision_value: Any,
+) -> float:
+    normalized = _normalize_decision(
+        decision_value,
+        50.0,
+    )
+
+    adjustments = {
+        "STRONG_BUY": 5.0,
+        "BUY": 3.0,
+        "HOLD": 0.0,
+        "REDUCE": -4.0,
+        "SELL": -7.0,
+        "AVOID": -10.0,
+    }
+
+    return adjustments.get(normalized, 0.0)
+
+
+def _risk_adjustment(
+    decision: AICIODecision,
+) -> float:
+    risk_veto = bool(
+        _decision_value(
+            decision,
+            "risk_veto",
+            False,
+        )
+    )
+
+    if risk_veto:
+        return -35.0
+
+    risk_status = _upper(
+        _decision_value(
+            decision,
+            "risk_status",
+            "INSUFFICIENT_DATA",
+        )
+    )
+
+    adjustments = {
+        "APPROVED": 3.0,
+        "APPROVED_WITH_CAUTION": -3.0,
+        "VETOED": -35.0,
+        "INSUFFICIENT_DATA": -7.0,
+    }
+
+    return adjustments.get(
+        risk_status,
+        -7.0,
+    )
+
+
+
+def _regime_adjustment(
+    decision: AICIODecision,
+) -> float:
+    """
+    Apply directional and volatility-aware ranking adjustments.
+    """
+    regime = _normalize_market_regime(
+        _decision_value(
+            decision,
+            "market_regime",
+            "UNKNOWN",
+        )
+    )
+
+    action = _normalize_decision(
+        _decision_value(
+            decision,
+            "decision",
+            "HOLD",
+        ),
+        _decision_value(
+            decision,
+            "decision_score",
+            50.0,
+        ),
+    )
+
+    bullish_action = action in {
+        "STRONG_BUY",
+        "BUY",
+    }
+
+    bearish_action = action in {
+        "REDUCE",
+        "SELL",
+        "AVOID",
+    }
+
+    bullish_regimes = {
+        "STRONG_BULLISH",
+        "BULLISH",
+    }
+
+    bearish_regimes = {
+        "BEARISH",
+        "STRONG_BEARISH",
+    }
+
+    if bullish_action and regime in bullish_regimes:
+        return 4.0
+
+    if bullish_action and regime in bearish_regimes:
+        return -8.0
+
+    if bearish_action and regime in bearish_regimes:
+        return 3.0
+
+    if bearish_action and regime in bullish_regimes:
+        return -2.0
+
+    if regime == "CAUTIOUS" and bullish_action:
+        return -4.0
+
+    if regime == "HIGH_VOLATILITY":
+        if bullish_action:
+            return -7.0
+
+        if bearish_action:
+            return 1.0
+
+        return -2.0
+
+    if regime == "LOW_VOLATILITY":
+        if bullish_action:
+            return 2.0
+
+        if bearish_action:
+            return -1.0
+
+        return 1.0
+
+    if regime == "NORMAL_VOLATILITY":
+        return 0.0
+
+    if regime == "UNKNOWN":
+        return -2.0
+
+    return 0.0
+
+def _data_quality_score(
+    decision: AICIODecision,
+) -> float:
+    supporting = _supporting_engines_mapping(
+        decision
+    )
+
+    if supporting:
+        expected = (
+            "prediction_center",
+            "investment_committee",
+            "risk_engine",
+            "portfolio_optimizer",
+            "screener_engine",
+            "learning_engine",
+            "market_regime_engine",
+            "market_breadth",
+        )
+
+        available = sum(
+            1
+            for key in expected
+            if bool(supporting.get(key))
+        )
+
+        return round(
+            100.0 * available / len(expected),
+            2,
+        )
+
+    source_metadata = _decision_value(
+        decision,
+        "source_metadata",
+        {},
+    )
+
+    if isinstance(source_metadata, Mapping):
+        available_sources = source_metadata.get(
+            "available_sources",
+            {},
+        )
+
+        if isinstance(available_sources, Mapping):
+            total = len(available_sources)
+
+            if total > 0:
+                available = sum(
+                    1
+                    for value in available_sources.values()
+                    if bool(value)
+                )
+
+                return round(
+                    100.0 * available / total,
+                    2,
+                )
+
+    return 0.0
+
+
+def _expected_return_score(
+    decision: AICIODecision,
+) -> float:
+    price_plan = _decision_value(
+        decision,
+        "price_plan",
+        {},
+    )
+
+    if not isinstance(price_plan, Mapping):
+        try:
+            price_plan = _dataclass_asdict(
+                price_plan
+            )
+        except (TypeError, ValueError):
+            price_plan = {}
+
+    expected_return = _safe_float(
+        price_plan.get(
+            "expected_return_pct",
+            0.0,
+        )
+    )
+
+    downside = abs(
+        _safe_float(
+            price_plan.get(
+                "downside_risk_pct",
+                0.0,
+            )
+        )
+    )
+
+    risk_reward = _safe_float(
+        price_plan.get(
+            "risk_reward_ratio",
+            0.0,
+        )
+    )
+
+    expected_component = _clamp(
+        50.0 + expected_return * 2.5,
+        0.0,
+        100.0,
+    )
+
+    downside_penalty = _clamp(
+        downside * 1.5,
+        0.0,
+        30.0,
+    )
+
+    risk_reward_bonus = _clamp(
+        risk_reward * 5.0,
+        0.0,
+        20.0,
+    )
+
+    return round(
+        _clamp(
+            expected_component
+            - downside_penalty
+            + risk_reward_bonus,
+            0.0,
+            100.0,
+        ),
+        2,
+    )
+
+
+def _build_ranking_reasons(
+    decision: AICIODecision,
+    *,
+    score_values: MappingType,
+    executive_score: float,
+    risk_adjustment: float,
+    regime_adjustment: float,
+    data_quality_score: float,
+) -> List[str]:
+    reasons: List[str] = []
+
+    decision_value = _normalize_decision(
+        _decision_value(
+            decision,
+            "decision",
+            "HOLD",
+        ),
+        _decision_value(
+            decision,
+            "decision_score",
+            50.0,
+        ),
+    )
+
+    confidence = _normalized_score_value(
+        _decision_value(
+            decision,
+            "confidence",
+            0.0,
+        )
+    )
+
+    if executive_score >= 80:
+        reasons.append(
+            "High executive composite score"
+        )
+    elif executive_score >= 65:
+        reasons.append(
+            "Positive executive composite score"
+        )
+    elif executive_score < 40:
+        reasons.append(
+            "Weak executive composite score"
+        )
+
+    if decision_value in {
+        "STRONG_BUY",
+        "BUY",
+    }:
+        reasons.append(
+            f"Committee action is {decision_value}"
+        )
+
+    if confidence >= 80:
+        reasons.append(
+            "High decision confidence"
+        )
+    elif confidence < 50:
+        reasons.append(
+            "Low decision confidence"
+        )
+
+    strongest = sorted(
+        (
+            (
+                key,
+                _normalized_score_value(value),
+            )
+            for key, value in score_values.items()
+        ),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
+    for key, value in strongest[:2]:
+        if value >= 70:
+            reasons.append(
+                f"Strong {key.replace('_', ' ')} score"
+            )
+
+    if risk_adjustment <= -20:
+        reasons.append(
+            "Risk engine materially reduced ranking"
+        )
+    elif risk_adjustment > 0:
+        reasons.append(
+            "Risk approval supports the opportunity"
+        )
+
+    if regime_adjustment > 0:
+        reasons.append(
+            "Decision aligns with market regime"
+        )
+    elif regime_adjustment < 0:
+        reasons.append(
+            "Decision conflicts with market regime"
+        )
+
+    if data_quality_score < 50:
+        reasons.append(
+            "Limited specialist-engine coverage"
+        )
+    elif data_quality_score >= 75:
+        reasons.append(
+            "Broad specialist-engine coverage"
+        )
+
+    original_reasons = _decision_value(
+        decision,
+        "ranking_reasons",
+        [],
+    )
+
+    if isinstance(original_reasons, str):
+        original_reasons = [
+            original_reasons
+        ]
+
+    if isinstance(
+        original_reasons,
+        (list, tuple),
+    ):
+        for reason in original_reasons:
+            text = str(reason or "").strip()
+
+            if text and text not in reasons:
+                reasons.append(text)
+
+    return reasons[:10]
+
+
+def calculate_executive_score(
+    decision: AICIODecision,
+    *,
+    weights: Optional[AICIORankingWeights] = None,
+) -> Dict[str, Any]:
+    """
+    Calculate a transparent, risk-adjusted executive opportunity score.
+    """
+
+    ranking_weights = (
+        weights or AICIORankingWeights()
+    ).normalized()
+
+    scores = _score_mapping(decision)
+
+    committee_score = _normalized_score_value(
+        scores.get(
+            "committee",
+            _decision_value(
+                decision,
+                "decision_score",
+                50.0,
+            ),
+        ),
+        50.0,
+    )
+
+    prediction_score = _normalized_score_value(
+        scores.get(
+            "prediction",
+            50.0,
+        ),
+        50.0,
+    )
+
+    technical_score = _normalized_score_value(
+        scores.get(
+            "technical",
+            50.0,
+        ),
+        50.0,
+    )
+
+    institutional_score = _normalized_score_value(
+        scores.get(
+            "institutional",
+            50.0,
+        ),
+        50.0,
+    )
+
+    volume_score = _normalized_score_value(
+        scores.get(
+            "volume",
+            50.0,
+        ),
+        50.0,
+    )
+
+    consensus_score = _normalized_score_value(
+        scores.get(
+            "consensus",
+            _decision_value(
+                decision,
+                "committee_consensus",
+                50.0,
+            ),
+        ),
+        50.0,
+    )
+
+    market_regime_score = _normalized_score_value(
+        scores.get(
+            "market_regime",
+            _regime_numeric_score(
+                _decision_value(
+                    decision,
+                    "market_regime",
+                    "UNKNOWN",
+                )
+            ),
+        ),
+        50.0,
+    )
+
+    learning_score = _normalized_score_value(
+        scores.get(
+            "learning",
+            50.0,
+        ),
+        50.0,
+    )
+
+    portfolio_fit_score = _normalized_score_value(
+        scores.get(
+            "portfolio_fit",
+            50.0,
+        ),
+        50.0,
+    )
+
+    risk_score = _normalized_score_value(
+        scores.get(
+            "risk",
+            50.0,
+        ),
+        50.0,
+    )
+
+    score_values = {
+        "committee": committee_score,
+        "prediction": prediction_score,
+        "technical": technical_score,
+        "institutional": institutional_score,
+        "volume": volume_score,
+        "consensus": consensus_score,
+        "market_regime": market_regime_score,
+        "learning": learning_score,
+        "portfolio_fit": portfolio_fit_score,
+        "risk": risk_score,
+    }
+
+    base_score = sum(
+        score_values[key]
+        * ranking_weights[key]
+        for key in ranking_weights
+    )
+
+    confidence_score = _normalized_score_value(
+        _decision_value(
+            decision,
+            "confidence",
+            0.0,
+        )
+    )
+
+    opportunity_score = _expected_return_score(
+        decision
+    )
+
+    quality_score = _data_quality_score(
+        decision
+    )
+
+    base_with_confidence = (
+        base_score * 0.72
+        + confidence_score * 0.13
+        + opportunity_score * 0.10
+        + quality_score * 0.05
+    )
+
+    risk_delta = _risk_adjustment(
+        decision
+    )
+
+    regime_delta = _regime_adjustment(
+        decision
+    )
+
+    conviction_delta = _conviction_adjustment(
+        _decision_value(
+            decision,
+            "conviction",
+            "MEDIUM",
+        )
+    )
+
+    action_delta = _decision_action_adjustment(
+        _decision_value(
+            decision,
+            "decision",
+            "HOLD",
+        )
+    )
+
+    executive_score = round(
+        _clamp(
+            base_with_confidence
+            + risk_delta
+            + regime_delta
+            + conviction_delta
+            + action_delta,
+            0.0,
+            100.0,
+        ),
+        2,
+    )
+
+    reasons = _build_ranking_reasons(
+        decision,
+        score_values=score_values,
+        executive_score=executive_score,
+        risk_adjustment=risk_delta,
+        regime_adjustment=regime_delta,
+        data_quality_score=quality_score,
+    )
+
+    return {
+        "executive_score": executive_score,
+        "base_score": round(base_score, 2),
+        "confidence_score": round(
+            confidence_score,
+            2,
+        ),
+        "opportunity_score": round(
+            opportunity_score,
+            2,
+        ),
+        "risk_adjustment": round(
+            risk_delta,
+            2,
+        ),
+        "regime_adjustment": round(
+            regime_delta,
+            2,
+        ),
+        "conviction_adjustment": round(
+            conviction_delta,
+            2,
+        ),
+        "action_adjustment": round(
+            action_delta,
+            2,
+        ),
+        "data_quality_score": round(
+            quality_score,
+            2,
+        ),
+        "ranking_reasons": reasons,
+        "score_components": score_values,
+        "weights": ranking_weights,
+    }
+
+
+def rank_ai_cio_decisions(
+    decisions: Sequence[AICIODecision],
+    *,
+    weights: Optional[AICIORankingWeights] = None,
+    actionable_first: bool = True,
+) -> List[AICIORankedDecision]:
+    """
+    Rank AI CIO decisions by risk-adjusted executive score.
+    """
+
+    scored: List[
+        _Tuple[
+            AICIODecision,
+            Dict[str, Any],
+        ]
+    ] = []
+
+    for decision in decisions:
+        score = calculate_executive_score(
+            decision,
+            weights=weights,
+        )
+
+        scored.append(
+            (
+                decision,
+                score,
+            )
+        )
+
+    def sort_key(
+        item: _Tuple[
+            AICIODecision,
+            Dict[str, Any],
+        ]
+    ) -> _Tuple[Any, ...]:
+        decision, score = item
+
+        actionable = bool(
+            _decision_value(
+                decision,
+                "is_actionable",
+                False,
+            )
+        )
+
+        risk_veto = bool(
+            _decision_value(
+                decision,
+                "risk_veto",
+                False,
+            )
+        )
+
+        confidence = _normalized_score_value(
+            _decision_value(
+                decision,
+                "confidence",
+                0.0,
+            )
+        )
+
+        symbol = _normalize_symbol(
+            _decision_value(
+                decision,
+                "symbol",
+                "",
+            )
+        )
+
+        return (
+            0
+            if not actionable_first
+            else (-1 if actionable else 0),
+            1 if risk_veto else 0,
+            -score["executive_score"],
+            -confidence,
+            symbol,
+        )
+
+    scored.sort(
+        key=sort_key
+    )
+
+    ranked: List[AICIORankedDecision] = []
+
+    for rank, (
+        decision,
+        score,
+    ) in enumerate(
+        scored,
+        start=1,
+    ):
+        ranked.append(
+            AICIORankedDecision(
+                rank=rank,
+                symbol=_normalize_symbol(
+                    _decision_value(
+                        decision,
+                        "symbol",
+                        "",
+                    )
+                ),
+                executive_score=score[
+                    "executive_score"
+                ],
+                base_score=score[
+                    "base_score"
+                ],
+                confidence_score=score[
+                    "confidence_score"
+                ],
+                opportunity_score=score[
+                    "opportunity_score"
+                ],
+                risk_adjustment=score[
+                    "risk_adjustment"
+                ],
+                regime_adjustment=score[
+                    "regime_adjustment"
+                ],
+                conviction_adjustment=score[
+                    "conviction_adjustment"
+                ],
+                action_adjustment=score[
+                    "action_adjustment"
+                ],
+                data_quality_score=score[
+                    "data_quality_score"
+                ],
+                ranking_reasons=list(
+                    score["ranking_reasons"]
+                ),
+                decision=decision,
+            )
+        )
+
+    return ranked
+
+
+def _derive_market_regime(
+    ranked_decisions: Sequence[
+        AICIORankedDecision
+    ],
+) -> str:
+    regimes: Dict[str, int] = {}
+
+    for item in ranked_decisions:
+        regime = _normalize_market_regime(
+            _decision_value(
+                item.decision,
+                "market_regime",
+                "UNKNOWN",
+            )
+        )
+
+        regimes[regime] = (
+            regimes.get(regime, 0)
+            + 1
+        )
+
+    if not regimes:
+        return "UNKNOWN"
+
+    return sorted(
+        regimes.items(),
+        key=lambda item: (
+            -item[1],
+            item[0],
+        ),
+    )[0][0]
+
+
+
+def _deployment_posture(
+    *,
+    market_regime: str,
+    average_score: float,
+    veto_ratio: float,
+    actionable_ratio: float,
+) -> str:
+    """
+    Determine the portfolio deployment posture.
+
+    High volatility has explicit defensive priority even where the market
+    direction is not bearish.
+    """
+    normalized_regime = _normalize_market_regime(
+        market_regime
+    )
+
+    if normalized_regime == "HIGH_VOLATILITY":
+        return "DEFENSIVE"
+
+    if (
+        normalized_regime
+        in {
+            "STRONG_BULLISH",
+            "BULLISH",
+        }
+        and average_score >= 70
+        and veto_ratio <= 0.10
+        and actionable_ratio >= 0.35
+    ):
+        return "AGGRESSIVE"
+
+    if (
+        normalized_regime
+        in {
+            "BEARISH",
+            "STRONG_BEARISH",
+        }
+        or veto_ratio >= 0.30
+        or average_score < 45
+    ):
+        return "DEFENSIVE"
+
+    return "BALANCED"
+
+
+def _recommended_exposure(
+    *,
+    posture: str,
+    market_regime: str,
+    average_score: float,
+    actionable_ratio: float,
+    veto_ratio: float,
+) -> float:
+    """
+    Calculate risk-adjusted portfolio exposure with volatility controls.
+    """
+    normalized_regime = _normalize_market_regime(
+        market_regime
+    )
+
+    base = {
+        "AGGRESSIVE": 75.0,
+        "BALANCED": 50.0,
+        "DEFENSIVE": 25.0,
+    }.get(posture, 40.0)
+
+    score_delta = (
+        average_score - 50.0
+    ) * 0.35
+
+    action_delta = (
+        actionable_ratio - 0.25
+    ) * 30.0
+
+    veto_delta = -veto_ratio * 35.0
+
+    regime_delta = {
+        "STRONG_BULLISH": 10.0,
+        "BULLISH": 5.0,
+        "NEUTRAL": 0.0,
+        "CAUTIOUS": -8.0,
+        "BEARISH": -15.0,
+        "STRONG_BEARISH": -25.0,
+
+        "LOW_VOLATILITY": 4.0,
+        "NORMAL_VOLATILITY": 0.0,
+        "HIGH_VOLATILITY": -15.0,
+
+        "UNKNOWN": -5.0,
+    }.get(normalized_regime, -5.0)
+
+    return round(
+        _clamp(
+            base
+            + score_delta
+            + action_delta
+            + veto_delta
+            + regime_delta,
+            0.0,
+            100.0,
+        ),
+        2,
+    )
+
+
+def _market_stance(
+    market_regime: str,
+    posture: str,
+) -> str:
+    """
+    Produce an executive market stance that preserves volatility context.
+    """
+    normalized_regime = _normalize_market_regime(
+        market_regime
+    )
+
+    if normalized_regime == "HIGH_VOLATILITY":
+        return "VOLATILITY_DEFENSIVE"
+
+    if posture == "AGGRESSIVE":
+        return "RISK_ON"
+
+    if posture == "DEFENSIVE":
+        return "CAPITAL_PRESERVATION"
+
+    if normalized_regime in {
+        "BULLISH",
+        "STRONG_BULLISH",
+    }:
+        return "SELECTIVE_RISK_ON"
+
+    if normalized_regime in {
+        "BEARISH",
+        "STRONG_BEARISH",
+        "CAUTIOUS",
+    }:
+        return "SELECTIVE_DEFENSIVE"
+
+    if normalized_regime == "LOW_VOLATILITY":
+        return "STABLE_SELECTIVE_DEPLOYMENT"
+
+    return "NEUTRAL"
+
+def build_ai_cio_summary(
+    ranked_decisions: Sequence[
+        AICIORankedDecision
+    ],
+) -> AICIOExecutiveSummary:
+    """
+    Generate an executive portfolio briefing.
+    """
+
+    total = len(ranked_decisions)
+
+    action_counts = {
+        "STRONG_BUY": 0,
+        "BUY": 0,
+        "HOLD": 0,
+        "REDUCE": 0,
+        "SELL": 0,
+        "AVOID": 0,
+    }
+
+    risk_counts = {
+        "APPROVED": 0,
+        "APPROVED_WITH_CAUTION": 0,
+        "VETOED": 0,
+        "INSUFFICIENT_DATA": 0,
+    }
+
+    actionable = 0
+    confidence_values: List[float] = []
+    score_values: List[float] = []
+    quality_values: List[float] = []
+    requested_allocations: List[float] = []
+
+    opportunities: List[str] = []
+    warnings: List[str] = []
+
+    for item in ranked_decisions:
+        decision = item.decision
+
+        action = _normalize_decision(
+            _decision_value(
+                decision,
+                "decision",
+                "HOLD",
+            ),
+            _decision_value(
+                decision,
+                "decision_score",
+                50.0,
+            ),
+        )
+
+        action_counts[action] = (
+            action_counts.get(action, 0)
+            + 1
+        )
+
+        risk_status = _upper(
+            _decision_value(
+                decision,
+                "risk_status",
+                "INSUFFICIENT_DATA",
+            )
+        )
+
+        if risk_status not in risk_counts:
+            risk_status = "INSUFFICIENT_DATA"
+
+        risk_counts[risk_status] += 1
+
+        is_actionable = bool(
+            _decision_value(
+                decision,
+                "is_actionable",
+                False,
+            )
+        )
+
+        if is_actionable:
+            actionable += 1
+
+        confidence_values.append(
+            _normalized_score_value(
+                _decision_value(
+                    decision,
+                    "confidence",
+                    0.0,
+                )
+            )
+        )
+
+        score_values.append(
+            item.executive_score
+        )
+
+        quality_values.append(
+            item.data_quality_score
+        )
+
+        allocation = _allocation_mapping(
+            decision
+        )
+
+        position_size = max(
+            0.0,
+            _safe_float(
+                allocation.get(
+                    "position_size_pct",
+                    0.0,
+                )
+            ),
+        )
+
+        requested_allocations.append(
+            position_size
+        )
+
+        if (
+            is_actionable
+            and len(opportunities) < 5
+        ):
+            opportunities.append(
+                item.symbol
+            )
+
+    average_confidence = round(
+        sum(confidence_values)
+        / len(confidence_values),
+        2,
+    ) if confidence_values else 0.0
+
+    average_score = round(
+        sum(score_values)
+        / len(score_values),
+        2,
+    ) if score_values else 0.0
+
+    average_quality = round(
+        sum(quality_values)
+        / len(quality_values),
+        2,
+    ) if quality_values else 0.0
+
+    market_regime = _derive_market_regime(
+        ranked_decisions
+    )
+
+    actionable_ratio = (
+        actionable / total
+        if total
+        else 0.0
+    )
+
+    veto_ratio = (
+        risk_counts["VETOED"] / total
+        if total
+        else 0.0
+    )
+
+    posture = _deployment_posture(
+        market_regime=market_regime,
+        average_score=average_score,
+        veto_ratio=veto_ratio,
+        actionable_ratio=actionable_ratio,
+    )
+
+    recommended_exposure = _recommended_exposure(
+        posture=posture,
+        market_regime=market_regime,
+        average_score=average_score,
+        actionable_ratio=actionable_ratio,
+        veto_ratio=veto_ratio,
+    )
+
+    market_stance = _market_stance(
+        market_regime,
+        posture,
+    )
+
+    capital_requested = round(
+        sum(requested_allocations),
+        2,
+    )
+
+    capital_recommended = round(
+        min(
+            capital_requested,
+            recommended_exposure,
+        ),
+        2,
+    )
+
+    concentration_warning = any(
+        value > 20.0
+        for value in requested_allocations
+    )
+
+    if capital_requested > 100.0:
+        warnings.append(
+            "Requested position sizes exceed 100% of portfolio capital"
+        )
+
+    if concentration_warning:
+        warnings.append(
+            "At least one recommended position exceeds 20% allocation"
+        )
+
+    if average_quality < 50.0 and total:
+        warnings.append(
+            "Average specialist-engine coverage is below 50%"
+        )
+
+    if risk_counts["VETOED"] > 0:
+        warnings.append(
+            f"{risk_counts['VETOED']} decision(s) are risk-vetoed"
+        )
+
+    if (
+        risk_counts[
+            "INSUFFICIENT_DATA"
+        ] > 0
+    ):
+        warnings.append(
+            f"{risk_counts['INSUFFICIENT_DATA']} decision(s) have insufficient risk data"
+        )
+
+    top_item = (
+        ranked_decisions[0]
+        if ranked_decisions
+        else None
+    )
+
+    top_symbol = (
+        top_item.symbol
+        if top_item
+        else None
+    )
+
+    top_decision = (
+        _normalize_decision(
+            _decision_value(
+                top_item.decision,
+                "decision",
+                "HOLD",
+            ),
+            _decision_value(
+                top_item.decision,
+                "decision_score",
+                50.0,
+            ),
+        )
+        if top_item
+        else None
+    )
+
+    top_score = (
+        top_item.executive_score
+        if top_item
+        else 0.0
+    )
+
+    top_confidence = (
+        _normalized_score_value(
+            _decision_value(
+                top_item.decision,
+                "confidence",
+                0.0,
+            )
+        )
+        if top_item
+        else 0.0
+    )
+
+    if total == 0:
+        executive_message = (
+            "No AI CIO decisions are currently available."
+        )
+    elif top_item:
+        executive_message = (
+            f"{posture.title()} deployment posture under a "
+            f"{market_regime.replace('_', ' ').title()} market regime. "
+            f"Top opportunity is {top_symbol} with an executive score "
+            f"of {top_score:.2f}."
+        )
+    else:
+        executive_message = (
+            f"{posture.title()} deployment posture."
+        )
+
+    if risk_counts["VETOED"] > 0:
+        risk_message = (
+            f"Risk controls vetoed {risk_counts['VETOED']} "
+            f"of {total} decisions. Vetoed opportunities must not receive capital."
+        )
+    elif risk_counts[
+        "APPROVED_WITH_CAUTION"
+    ] > 0:
+        risk_message = (
+            f"{risk_counts['APPROVED_WITH_CAUTION']} decision(s) "
+            f"require cautious position sizing."
+        )
+    elif total:
+        risk_message = (
+            "No risk vetoes were detected in the ranked decision set."
+        )
+    else:
+        risk_message = (
+            "Risk status cannot be assessed without decisions."
+        )
+
+    return AICIOExecutiveSummary(
+        generated_at=_datetime.now(
+            _timezone.utc
+        ).isoformat(),
+        market_regime=market_regime,
+        market_stance=market_stance,
+        deployment_posture=posture,
+        recommended_exposure_pct=recommended_exposure,
+
+        total_decisions=total,
+        actionable_decisions=actionable,
+
+        strong_buy_count=action_counts[
+            "STRONG_BUY"
+        ],
+        buy_count=action_counts["BUY"],
+        hold_count=action_counts["HOLD"],
+        reduce_count=action_counts["REDUCE"],
+        sell_count=action_counts["SELL"],
+        avoid_count=action_counts["AVOID"],
+
+        approved_count=risk_counts[
+            "APPROVED"
+        ],
+        caution_count=risk_counts[
+            "APPROVED_WITH_CAUTION"
+        ],
+        vetoed_count=risk_counts[
+            "VETOED"
+        ],
+        insufficient_risk_data_count=risk_counts[
+            "INSUFFICIENT_DATA"
+        ],
+
+        average_confidence=average_confidence,
+        average_executive_score=average_score,
+        average_data_quality=average_quality,
+
+        top_symbol=top_symbol,
+        top_decision=top_decision,
+        top_executive_score=top_score,
+        top_confidence=top_confidence,
+
+        capital_requested_pct=capital_requested,
+        capital_recommended_pct=capital_recommended,
+        concentration_warning=concentration_warning,
+
+        executive_message=executive_message,
+        risk_message=risk_message,
+        opportunities=opportunities,
+        warnings=warnings,
+    )
+
+
+def validate_ranked_ai_cio_output(
+    ranked_decisions: Sequence[
+        AICIORankedDecision
+    ],
+    *,
+    raise_on_error: bool = False,
+) -> Dict[str, Any]:
+    """
+    Validate ranking order, uniqueness, score boundaries and decision contracts.
+    """
+
+    errors: List[str] = []
+    warnings: List[str] = []
+
+    expected_rank = 1
+    previous_score: Optional[float] = None
+    symbols: set[str] = set()
+
+    for item in ranked_decisions:
+        if item.rank != expected_rank:
+            errors.append(
+                f"Expected rank {expected_rank}, received {item.rank}"
+            )
+
+        expected_rank += 1
+
+        if not item.symbol:
+            errors.append(
+                f"Rank {item.rank} has no symbol"
+            )
+
+        if item.symbol in symbols:
+            errors.append(
+                f"Duplicate ranked symbol: {item.symbol}"
+            )
+
+        symbols.add(item.symbol)
+
+        if not (
+            0.0
+            <= item.executive_score
+            <= 100.0
+        ):
+            errors.append(
+                f"{item.symbol}: executive score outside 0-100"
+            )
+
+        if not (
+            0.0
+            <= item.data_quality_score
+            <= 100.0
+        ):
+            errors.append(
+                f"{item.symbol}: data-quality score outside 0-100"
+            )
+
+        if (
+            previous_score is not None
+            and item.executive_score
+            > previous_score
+        ):
+            warnings.append(
+                f"{item.symbol}: score order increased after ranking"
+            )
+
+        previous_score = item.executive_score
+
+        decision_symbol = _normalize_symbol(
+            _decision_value(
+                item.decision,
+                "symbol",
+                "",
+            )
+        )
+
+        if decision_symbol != item.symbol:
+            errors.append(
+                f"{item.symbol}: ranked symbol differs from decision symbol"
+            )
+
+        try:
+            validator = globals().get(
+                "validate_ai_cio_decision"
+            )
+
+            if callable(validator):
+                validator(item.decision)
+        except Exception as exc:
+            errors.append(
+                f"{item.symbol}: contract validation failed: {exc}"
+            )
+
+        if bool(
+            _decision_value(
+                item.decision,
+                "risk_veto",
+                False,
+            )
+        ) and bool(
+            _decision_value(
+                item.decision,
+                "is_actionable",
+                False,
+            )
+        ):
+            errors.append(
+                f"{item.symbol}: risk-vetoed decision is actionable"
+            )
+
+    result = {
+        "valid": not errors,
+        "decision_count": len(
+            ranked_decisions
+        ),
+        "error_count": len(errors),
+        "warning_count": len(warnings),
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+    if errors and raise_on_error:
+        raise AICIOOrchestrationError(
+            "AI CIO ranked-output validation failed: "
+            + "; ".join(errors)
+        )
+
+    return result
+
+
+def rank_ai_cio_result(
+    source_result: AICIOBuildResult,
+    *,
+    weights: Optional[AICIORankingWeights] = None,
+    actionable_first: bool = True,
+    validate: bool = True,
+    strict_validation: bool = False,
+) -> AICIOExecutiveResult:
+    """
+    Convert Part 1 orchestration output into a complete executive result.
+    """
+
+    decisions = list(
+        getattr(
+            source_result,
+            "decisions",
+            [],
+        )
+    )
+
+    ranked = rank_ai_cio_decisions(
+        decisions,
+        weights=weights,
+        actionable_first=actionable_first,
+    )
+
+    summary = build_ai_cio_summary(
+        ranked
+    )
+
+    validation = (
+        validate_ranked_ai_cio_output(
+            ranked,
+            raise_on_error=strict_validation,
+        )
+        if validate
+        else {
+            "valid": True,
+            "decision_count": len(ranked),
+            "error_count": 0,
+            "warning_count": 0,
+            "errors": [],
+            "warnings": [],
+            "skipped": True,
+        }
+    )
+
+    source_metadata = dict(
+        getattr(
+            source_result,
+            "metadata",
+            {},
+        )
+    )
+
+    return AICIOExecutiveResult(
+        ranked_decisions=ranked,
+        summary=summary,
+        validation=validation,
+        source_result=source_result,
+        metadata={
+            **source_metadata,
+            "phase": "12.2-part-2",
+            "ranking_applied": True,
+            "summary_generated": True,
+            "validation_applied": validate,
+            "repository_writes": False,
+            "comparison_mode": False,
+        },
+    )
+
+
+def build_ai_cio_executive_result(
+    *,
+    prediction_center: Any = None,
+    investment_committee: Any = None,
+    risk_engine: Any = None,
+    portfolio_optimizer: Any = None,
+    screener: Any = None,
+    market_regime: Any = None,
+    learning: Any = None,
+    breadth: Any = None,
+    metadata: Optional[MappingType] = None,
+    strict: bool = False,
+    weights: Optional[AICIORankingWeights] = None,
+    actionable_first: bool = True,
+    validate: bool = True,
+    strict_validation: bool = False,
+) -> AICIOExecutiveResult:
+    """
+    Build, rank, summarize and validate AI CIO decisions from raw engine output.
+    """
+
+    source_result = build_ai_cio_decisions(
+        prediction_center=prediction_center,
+        investment_committee=investment_committee,
+        risk_engine=risk_engine,
+        portfolio_optimizer=portfolio_optimizer,
+        screener=screener,
+        market_regime=market_regime,
+        learning=learning,
+        breadth=breadth,
+        metadata=metadata,
+        strict=strict,
+    )
+
+    return rank_ai_cio_result(
+        source_result,
+        weights=weights,
+        actionable_first=actionable_first,
+        validate=validate,
+        strict_validation=strict_validation,
+    )
+
+
+def get_ai_cio(
+    *,
+    cache_key: str = "default",
+    cache: Optional[AICIOCache] = None,
+    ttl_seconds: float = 60.0,
+    force_refresh: bool = False,
+    prediction_center: Any = None,
+    investment_committee: Any = None,
+    risk_engine: Any = None,
+    portfolio_optimizer: Any = None,
+    screener: Any = None,
+    market_regime: Any = None,
+    learning: Any = None,
+    breadth: Any = None,
+    metadata: Optional[MappingType] = None,
+    strict: bool = False,
+    weights: Optional[AICIORankingWeights] = None,
+    actionable_first: bool = True,
+    validate: bool = True,
+    strict_validation: bool = False,
+) -> AICIOExecutiveResult:
+    """
+    Cached functional entry point.
+
+    Phase 12.2 Part 2 accepts already-produced specialist-engine outputs.
+    Production provider integration is added in Part 3.
+    """
+
+    selected_cache = (
+        cache
+        if cache is not None
+        else _DEFAULT_AI_CIO_CACHE
+    )
+
+    normalized_key = (
+        f"ai-cio:{str(cache_key or 'default').strip()}"
+    )
+
+    if not force_refresh:
+        cached = selected_cache.get(
+            normalized_key
+        )
+
+        if cached is not None:
+            return cached
+
+    result = build_ai_cio_executive_result(
+        prediction_center=prediction_center,
+        investment_committee=investment_committee,
+        risk_engine=risk_engine,
+        portfolio_optimizer=portfolio_optimizer,
+        screener=screener,
+        market_regime=market_regime,
+        learning=learning,
+        breadth=breadth,
+        metadata=metadata,
+        strict=strict,
+        weights=weights,
+        actionable_first=actionable_first,
+        validate=validate,
+        strict_validation=strict_validation,
+    )
+
+    selected_cache.set(
+        normalized_key,
+        result,
+        ttl_seconds=ttl_seconds,
+    )
+
+    return result
+
+
+def clear_ai_cio_cache(
+    cache: Optional[AICIOCache] = None,
+) -> None:
+    selected_cache = (
+        cache
+        if cache is not None
+        else _DEFAULT_AI_CIO_CACHE
+    )
+
+    selected_cache.clear()
+
+
+def get_ai_cio_cache_stats(
+    cache: Optional[AICIOCache] = None,
+) -> Dict[str, Any]:
+    selected_cache = (
+        cache
+        if cache is not None
+        else _DEFAULT_AI_CIO_CACHE
+    )
+
+    return selected_cache.stats()
+
+
+try:
+    __all__.extend(
+        [
+            "AICIOCache",
+            "AICIOExecutiveResult",
+            "AICIOExecutiveSummary",
+            "AICIORankedDecision",
+            "AICIORankingWeights",
+            "build_ai_cio_executive_result",
+            "build_ai_cio_summary",
+            "calculate_executive_score",
+            "clear_ai_cio_cache",
+            "get_ai_cio",
+            "get_ai_cio_cache_stats",
+            "rank_ai_cio_decisions",
+            "rank_ai_cio_result",
+            "validate_ranked_ai_cio_output",
+        ]
+    )
+except NameError:
+    __all__ = [
+        "AICIOCache",
+        "AICIOExecutiveResult",
+        "AICIOExecutiveSummary",
+        "AICIORankedDecision",
+        "AICIORankingWeights",
+        "build_ai_cio_executive_result",
+        "build_ai_cio_summary",
+        "calculate_executive_score",
+        "clear_ai_cio_cache",
+        "get_ai_cio",
+        "get_ai_cio_cache_stats",
+        "rank_ai_cio_decisions",
+        "rank_ai_cio_result",
+        "validate_ranked_ai_cio_output",
+    ]
