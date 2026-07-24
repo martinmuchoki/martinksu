@@ -214,105 +214,28 @@ def dashboard():
 def v117_decision():
     """
     Return the authoritative Version 11.7 Decision Object.
+
+    Market and decision orchestration are delegated to the
+    shared application context layer.
     """
-    market = get_market_snapshot()
-
-    try:
-        technicals = analyze_market(
-            market.get("stocks", [])
-        )
-    except Exception:
-        app.logger.exception(
-            "Decision API technical analysis failed"
-        )
-        technicals = []
-
-    risk_metrics = build_market_risk(
-        market.get("stocks", [])
+    from services.application.decision_context import (
+        DecisionContextBuilder,
+    )
+    from services.application.market_context import (
+        MarketContextBuilder,
     )
 
-    regime = detect_market_regime(
-        market,
-        technicals,
-        risk_metrics,
+    market_context = MarketContextBuilder(
+        logger=app.logger,
+    ).build_decision_context()
+
+    decision_context = DecisionContextBuilder(
+        logger=app.logger,
+    ).build_authoritative_decision(
+        market_context=market_context,
     )
 
-    sector_rotation = analyze_sector_rotation(
-        market.get("stocks", [])
-    )
-
-    try:
-        persisted_signals = (
-            get_signal_service()
-            .get_top_signals(limit=10)
-        )
-
-        persisted_signal_summary = (
-            get_signal_service()
-            .get_dashboard_summary(limit=10)
-        )
-    except Exception:
-        app.logger.exception(
-            "Decision API SignalService read failed"
-        )
-        persisted_signals = []
-        persisted_signal_summary = {
-            "average_confidence": 0,
-        }
-
-    decision = get_ai_decision(
-        signals=persisted_signals,
-        market={
-            "status": (
-                regime.get(
-                    "label",
-                    regime.get(
-                        "regime",
-                        regime.get(
-                            "market_regime",
-                            "Neutral / Selective",
-                        ),
-                    ),
-                )
-                if isinstance(regime, dict)
-                else str(
-                    regime or "Neutral / Selective"
-                )
-            ),
-            "ai_confidence": (
-                persisted_signal_summary.get(
-                    "average_confidence",
-                    0,
-                )
-            ),
-        },
-        regime=(
-            regime
-            if isinstance(regime, dict)
-            else {
-                "label": str(
-                    regime or "Neutral / Selective"
-                )
-            }
-        ),
-        risk_metrics=(
-            risk_metrics
-            if isinstance(risk_metrics, dict)
-            else {
-                "risk_level": str(
-                    risk_metrics or "UNKNOWN"
-                )
-            }
-        ),
-        breadth=get_market_breadth(),
-        institutional=(
-            sector_rotation
-            if isinstance(sector_rotation, dict)
-            else {}
-        ),
-    )
-
-    return jsonify(decision)
+    return jsonify(decision_context["decision"])
 
 
 @app.route("/health")

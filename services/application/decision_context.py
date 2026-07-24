@@ -22,6 +22,37 @@ class DecisionContextBuilder:
     ) -> None:
         self.logger = logger or logging.getLogger(__name__)
 
+
+    def build_authoritative_decision(
+        self,
+        *,
+        market_context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Build the authoritative decision without unrelated contexts."""
+
+        (
+            persisted_signals,
+            persisted_signal_summary,
+        ) = self._build_signal_context()
+
+        decision = self._build_ai_decision(
+            persisted_signals=persisted_signals,
+            persisted_signal_summary=persisted_signal_summary,
+            regime=market_context["regime"],
+            risk_metrics=market_context["risk_metrics"],
+            sector_rotation=market_context["sector_rotation"],
+        )
+
+        return {
+            "persisted_signals": persisted_signals,
+            "persisted_top_signal": (
+                persisted_signals[0]
+                if persisted_signals
+                else None
+            ),
+            "persisted_signal_summary": persisted_signal_summary,
+            "decision": decision,
+        }
     def build(
         self,
         *,

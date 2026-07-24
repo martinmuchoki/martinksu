@@ -27,6 +27,39 @@ class MarketContextBuilder:
     ) -> None:
         self.logger = logger or logging.getLogger(__name__)
 
+
+    def build_decision_context(self) -> Dict[str, Any]:
+        """Build only the market intelligence required for decisions."""
+
+        market = get_market_snapshot()
+        stocks = market.get("stocks", [])
+
+        try:
+            technicals = analyze_market(stocks)
+        except Exception as exc:
+            self.logger.exception(
+                "Decision technical analysis failed: %s",
+                exc,
+            )
+            technicals = []
+
+        risk_metrics = build_market_risk(stocks)
+
+        regime = detect_market_regime(
+            market,
+            technicals,
+            risk_metrics,
+        )
+
+        sector_rotation = analyze_sector_rotation(stocks)
+
+        return {
+            "market": market,
+            "technicals": technicals,
+            "risk_metrics": risk_metrics,
+            "regime": regime,
+            "sector_rotation": sector_rotation,
+        }
     def build(
         self,
         *,
