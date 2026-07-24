@@ -8,6 +8,8 @@ from werkzeug.security import check_password_hash
 from flask import Flask, render_template, jsonify, request, redirect, send_file, session, url_for, send_from_directory
 from services.decision_engine import get_ai_decision
 from services.dashboard_context_builder import DashboardContextBuilder
+from services.application.portfolio_context import PortfolioContextBuilder
+from services.application.decision_context import DecisionContextBuilder
 from services.application.market_context import MarketContextBuilder
 
 # BEGIN MIP PRO ZIIDI COPILOT IMPORTS
@@ -248,6 +250,37 @@ def health():
         "time": datetime.now().isoformat()
     })
 
+
+def _build_decision_route_context():
+    """
+    Compose canonical market, portfolio and decision contexts.
+
+    HTTP routes consume this shared application composition instead
+    of directly orchestrating business services.
+    """
+
+    market_context = MarketContextBuilder(
+        logger=app.logger,
+    ).build_decision_context()
+
+    portfolio_context = PortfolioContextBuilder(
+        logger=app.logger,
+    ).build()
+
+    decision_context = DecisionContextBuilder(
+        logger=app.logger,
+    ).build(
+        market_context=market_context,
+        portfolio_context=portfolio_context,
+    )
+
+    return {
+        "market_context": market_context,
+        "portfolio_context": portfolio_context,
+        "decision_context": decision_context,
+    }
+
+
 @app.route("/market")
 def market():
     context = MarketContextBuilder(logger=app.logger)
@@ -264,7 +297,12 @@ def technicals():
 
 @app.route("/committee")
 def committee():
-    return jsonify(run_committee())
+    context = _build_decision_route_context()
+
+    return jsonify(
+        context["decision_context"]["committee"]
+    )
+
 
 @app.route("/portfolio")
 def portfolio():
@@ -272,11 +310,12 @@ def portfolio():
 
 @app.route("/assistant")
 def assistant():
-    market = get_market_snapshot()
-    technicals = analyze_market(market["stocks"])
-    committee = run_committee()
-    portfolio = get_portfolio()
-    return jsonify(autonomous_decision(market, committee, portfolio, technicals))
+    context = _build_decision_route_context()
+
+    return jsonify(
+        context["decision_context"]["assistant"]
+    )
+
 
 @app.route("/telegram/test")
 def telegram_test():
@@ -734,22 +773,12 @@ def api_v12_ziidi_trades():
 
 @app.route("/download_report")
 def download_report():
-    market = get_market_snapshot()
-    technicals = analyze_market(market.get("stocks", []))
-    portfolio = get_portfolio()
+    context = _build_decision_route_context()
 
-    committee = run_committee(
-        market=market,
-        technicals=technicals,
-        portfolio=portfolio,
-    )
-
-    assistant = autonomous_decision(
-        market,
-        committee,
-        portfolio,
-        technicals,
-    )
+    market = context["market_context"]["market"]
+    portfolio = context["portfolio_context"]["portfolio"]
+    committee = context["decision_context"]["committee"]
+    assistant = context["decision_context"]["assistant"]
 
     report = generate_daily_report(
         market,
@@ -761,29 +790,22 @@ def download_report():
     return send_file(
         report["path"],
         as_attachment=True,
-        download_name="MIP_PRO_Daily_Intelligence_Report_v11_5_Production.pdf",
+        download_name=(
+            "MIP_PRO_Daily_Intelligence_"
+            "Report_v11_5_Production.pdf"
+        ),
         mimetype="application/pdf",
     )
 
 
 @app.route("/api/v11.4/daily-report")
 def v114_daily_report():
-    market = get_market_snapshot()
-    technicals = analyze_market(market.get("stocks", []))
-    portfolio = get_portfolio()
+    context = _build_decision_route_context()
 
-    committee = run_committee(
-        market=market,
-        technicals=technicals,
-        portfolio=portfolio,
-    )
-
-    assistant = autonomous_decision(
-        market,
-        committee,
-        portfolio,
-        technicals,
-    )
+    market = context["market_context"]["market"]
+    portfolio = context["portfolio_context"]["portfolio"]
+    committee = context["decision_context"]["committee"]
+    assistant = context["decision_context"]["assistant"]
 
     return jsonify(
         generate_daily_report(
@@ -793,7 +815,6 @@ def v114_daily_report():
             assistant,
         )
     )
-
 
 
 
