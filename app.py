@@ -25,12 +25,8 @@ from services.ziidi_copilot import (
 
 from datetime import datetime
 from services.dashboard_engine import build_dashboard
-from services.ai_committee import run_committee
-from services.market_data import get_market_snapshot
-from services.technical_analysis import analyze_market
 from services.portfolio import get_portfolio
 from services.telegram_bot import telegram_status, send_telegram_alert
-from services.autonomous_assistant import autonomous_decision
 from services.screener_engine import run_screener
 from services.dashboard_charts import (
     get_dashboard_chart_data,
