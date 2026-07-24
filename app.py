@@ -8,6 +8,7 @@ from werkzeug.security import check_password_hash
 from flask import Flask, render_template, jsonify, request, redirect, send_file, session, url_for, send_from_directory
 from services.decision_engine import get_ai_decision
 from services.dashboard_context_builder import DashboardContextBuilder
+from services.application.market_context import MarketContextBuilder
 
 # BEGIN MIP PRO ZIIDI COPILOT IMPORTS
 from services.ziidi_copilot import (
@@ -249,11 +250,17 @@ def health():
 
 @app.route("/market")
 def market():
-    return jsonify(get_market_snapshot())
+    context = MarketContextBuilder(logger=app.logger)
+
+    return jsonify(context.market_snapshot())
+
+
 @app.route("/technicals")
 def technicals():
-    market = get_market_snapshot()
-    return jsonify(analyze_market(market["stocks"]))
+    context = MarketContextBuilder(logger=app.logger)
+
+    return jsonify(context.technical_analysis())
+
 
 @app.route("/committee")
 def committee():
@@ -418,33 +425,24 @@ def v113_optimizer():
 
 @app.route("/api/v11.4/predictions")
 def v114_predictions():
-    market = get_market_snapshot()
-    technicals = analyze_market(
-        market.get("stocks", [])
-    )
+    context = MarketContextBuilder(logger=app.logger)
 
     return jsonify(
-        build_predictions(
-            market.get("stocks", []),
-            technicals,
+        context.predictions(
             limit=request.args.get(
                 "limit",
                 default=20,
                 type=int,
-            ),
+            )
         )
     )
 
 
 @app.route("/api/v11.4/risk")
 def v114_risk():
-    market = get_market_snapshot()
+    context = MarketContextBuilder(logger=app.logger)
 
-    return jsonify(
-        build_market_risk(
-            market.get("stocks", [])
-        )
-    )
+    return jsonify(context.market_risk())
 
 
 @app.route("/api/v11.4/risk/<symbol>")
@@ -456,34 +454,18 @@ def v114_symbol_risk(symbol):
 
 @app.route("/api/v11.4/regime")
 def v114_regime():
-    market = get_market_snapshot()
+    context = MarketContextBuilder(logger=app.logger)
 
-    technicals = analyze_market(
-        market.get("stocks", [])
-    )
-
-    risk = build_market_risk(
-        market.get("stocks", [])
-    )
-
-    return jsonify(
-        detect_market_regime(
-            market,
-            technicals,
-            risk,
-        )
-    )
+    return jsonify(context.market_regime())
 
 
 @app.route("/api/v11.4/sectors")
 def v114_sectors():
-    market = get_market_snapshot()
+    context = MarketContextBuilder(logger=app.logger)
 
-    return jsonify(
-        analyze_sector_rotation(
-            market.get("stocks", [])
-        )
-    )
+    return jsonify(context.sector_rotation())
+
+
 
 
 
